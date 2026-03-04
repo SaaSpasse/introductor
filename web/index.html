@@ -3,105 +3,149 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Introductor - AI-Powered Warm Introductions</title>
+  <title>Introductor</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div class="container">
-    <header>
-      <h1>Introductor</h1>
-      <p class="subtitle">Craft warm, human email introductions in seconds.</p>
-    </header>
+    <div class="progress" id="progress">1 / 4</div>
 
-    <main>
-      <!-- API Key -->
-      <div class="api-key-section">
-        <label for="api-key">Your API key</label>
-        <div class="api-key-row">
-          <select id="provider">
-            <option value="anthropic">Claude (Anthropic)</option>
-            <option value="openai">ChatGPT (OpenAI)</option>
-          </select>
-          <input type="password" id="api-key" placeholder="sk-..." autocomplete="off">
-        </div>
-        <p class="hint">Your key stays in your browser. Nothing is stored or sent to our servers.</p>
-      </div>
+    <div class="wizard-viewport">
+      <div class="wizard-track" id="wizard-track">
 
-      <!-- Form -->
-      <form id="intro-form">
-        <div class="form-grid">
-          <div class="form-group">
-            <label for="person-a">Person A</label>
-            <textarea id="person-a" rows="3" placeholder="Name, role, company, and any context you have. E.g.: Sarah Chen, CTO at TalentAI, building AI hiring tools, raised $2M seed"></textarea>
-          </div>
-          <div class="form-group">
-            <label for="person-b">Person B</label>
-            <textarea id="person-b" rows="3" placeholder="Name, role, company, and any context you have. E.g.: Mike Park, VP Engineering at Acme, hiring 20 engineers this quarter"></textarea>
+        <!-- Step 1: Person A -->
+        <div class="step" data-step="1">
+          <label class="step-label">Who's the first person?</label>
+          <textarea id="person-a" rows="4" placeholder="Name, role, company, and any context.&#10;&#10;e.g. Sarah Chen, CTO at TalentAI, building AI hiring tools, raised $2M seed"></textarea>
+          <div class="step-nav">
+            <span></span>
+            <div class="step-nav-right">
+              <span class="step-hint">Cmd+Enter</span>
+              <button class="btn-next" data-next="2">Next &rarr;</button>
+            </div>
           </div>
         </div>
 
-        <div class="form-group">
-          <label for="why">Why connect them?</label>
-          <textarea id="why" rows="2" placeholder="E.g.: Sarah's tool could help Mike's hiring pipeline. They're both in Montreal tech."></textarea>
-        </div>
-
-        <div class="form-group">
-          <label for="personal">Your personal touch <span class="optional">(optional)</span></label>
-          <textarea id="personal" rows="2" placeholder="Anything personal you want to add? An anecdote, how you know them, a shared experience..."></textarea>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label for="tone">Tone</label>
-            <select id="tone">
-              <option value="casual">Casual (friends)</option>
-              <option value="warm" selected>Warm professional</option>
-              <option value="formal">Formal</option>
-            </select>
+        <!-- Step 2: Person B -->
+        <div class="step" data-step="2">
+          <div class="step-top">
+            <button class="btn-back" data-back="1">&larr; Back</button>
           </div>
-          <div class="form-group">
-            <label for="language">Language</label>
-            <select id="language">
-              <option value="en" selected>English</option>
-              <option value="fr">Fran&ccedil;ais</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label for="your-name">Your name</label>
-            <input type="text" id="your-name" placeholder="Your first name">
+          <label class="step-label">And who should they meet?</label>
+          <textarea id="person-b" rows="4" placeholder="Name, role, company, and any context.&#10;&#10;e.g. Mike Park, VP Engineering at Acme, hiring 20 engineers this quarter"></textarea>
+          <div class="step-nav">
+            <span></span>
+            <div class="step-nav-right">
+              <span class="step-hint">Cmd+Enter</span>
+              <button class="btn-next" data-next="3">Next &rarr;</button>
+            </div>
           </div>
         </div>
 
-        <button type="submit" id="generate-btn">Generate introduction</button>
-      </form>
+        <!-- Step 3: Why -->
+        <div class="step" data-step="3">
+          <div class="step-top">
+            <button class="btn-back" data-back="2">&larr; Back</button>
+          </div>
+          <label class="step-label" id="why-label">Why connect them?</label>
+          <textarea id="why" rows="3" placeholder="e.g. Sarah's tool could help Mike's hiring pipeline. They're both in Montreal tech."></textarea>
+          <div class="step-nav">
+            <span></span>
+            <div class="step-nav-right">
+              <span class="step-hint">Cmd+Enter</span>
+              <button class="btn-next" data-next="4">Next &rarr;</button>
+            </div>
+          </div>
+        </div>
 
-      <!-- Output -->
-      <div id="output" class="output hidden">
-        <div class="output-header">
-          <h2>Your introduction</h2>
+        <!-- Step 4: Finishing touches -->
+        <div class="step step-options" data-step="4">
+          <div class="step-top">
+            <button class="btn-back" data-back="3">&larr; Back</button>
+          </div>
+          <label class="step-label">Finishing touches</label>
+
+          <div class="options-grid">
+            <div class="option-group">
+              <span class="option-label">Tone</span>
+              <div class="pills" id="tone-pills">
+                <button class="pill" data-value="casual">Casual</button>
+                <button class="pill active" data-value="warm">Warm pro</button>
+                <button class="pill" data-value="formal">Formal</button>
+              </div>
+            </div>
+
+            <div class="option-group">
+              <span class="option-label">Language</span>
+              <div class="pills" id="lang-pills">
+                <button class="pill active" data-value="en">EN</button>
+                <button class="pill" data-value="fr">FR</button>
+              </div>
+            </div>
+
+            <div class="option-group">
+              <span class="option-label">Your name</span>
+              <input type="text" id="your-name" placeholder="First name">
+            </div>
+          </div>
+
+          <div class="option-group expandable">
+            <button class="expand-toggle" id="personal-toggle">+ Add personal touch</button>
+            <textarea id="personal" rows="2" class="hidden" placeholder="An anecdote, shared experience, how you know them..."></textarea>
+          </div>
+
+          <div class="mode-section">
+            <div class="mode-toggle">
+              <button class="mode-btn active" data-mode="free">Free</button>
+              <button class="mode-btn" data-mode="byok">Your API key</button>
+            </div>
+            <div id="byok-config" class="hidden">
+              <div class="byok-row">
+                <select id="provider">
+                  <option value="anthropic">Claude</option>
+                  <option value="openai">OpenAI</option>
+                </select>
+                <input type="password" id="api-key" placeholder="sk-..." autocomplete="off">
+              </div>
+              <p class="hint">Your key stays in your browser. Nothing stored.</p>
+            </div>
+            <p class="hint" id="free-hint">5 intros per day. No API key needed.</p>
+          </div>
+
+          <button class="btn-generate" id="generate-btn">Generate introduction</button>
+        </div>
+
+        <!-- Step 5: Output -->
+        <div class="step step-output" data-step="5">
+          <div class="step-top">
+            <button class="btn-back" data-back="4">&larr; Back</button>
+          </div>
+          <label class="step-label">Your introduction</label>
+
+          <div class="subject-row">
+            <span class="subject-prefix">Subject:</span>
+            <span id="subject-text" class="subject-text"></span>
+            <button class="btn-copy-small" id="copy-subject">Copy</button>
+          </div>
+
+          <div id="intro-body" class="intro-body" contenteditable="true"></div>
+
           <div class="output-actions">
-            <button id="copy-btn" class="btn-secondary" title="Copy to clipboard">Copy</button>
-            <button id="email-btn" class="btn-secondary" title="Open in email client">Open in email</button>
-            <button id="regen-btn" class="btn-secondary" title="Regenerate">Regenerate</button>
+            <button class="btn-action" id="copy-btn">Copy all</button>
+            <button class="btn-action" id="email-btn">Open in email</button>
+            <button class="btn-action" id="regen-btn">Regenerate</button>
+            <button class="btn-action" id="start-over-btn">Start over</button>
           </div>
+
+          <div id="error" class="error hidden"></div>
         </div>
-        <div id="subject-line" class="subject-line"></div>
-        <div id="intro-text" class="intro-text"></div>
-      </div>
 
-      <!-- Loading -->
-      <div id="loading" class="loading hidden">
-        <div class="spinner"></div>
-        <p>Crafting your introduction...</p>
       </div>
-
-      <!-- Error -->
-      <div id="error" class="error hidden"></div>
-    </main>
+    </div>
 
     <footer>
-      <p>No data is stored. Your information never leaves your browser session.</p>
-      <p>Built with <a href="https://github.com/SaaSpasse/introductor" target="_blank">Introductor</a> - also available as a <a href="https://github.com/SaaSpasse/introductor#claude-code-skill" target="_blank">Claude Code skill</a>.</p>
+      <p>No data stored. Everything stays in your browser.</p>
+      <p><a href="https://github.com/SaaSpasse/introductor">GitHub</a> &middot; also a <a href="https://github.com/SaaSpasse/introductor#claude-code-skill">Claude Code skill</a></p>
     </footer>
   </div>
   <script src="app.js"></script>
