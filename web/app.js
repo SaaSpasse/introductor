@@ -5,17 +5,17 @@ Your job: generate a warm intro email that connects two people. Follow these rul
 
 1. BREVITY - Max 150 words. Scannable in 15 seconds.
 2. NUGGETS - 1-2 credibility data points per person. Not a resume.
-3. LINKS - Hyperlink URLs on relevant words, never paste raw URLs.
+3. PLAIN TEXT ONLY - No markdown, no bold, no links, no formatting. This is a plain text email.
 4. TONE - Match the requested tone (casual/warm/formal). Sound human, not corporate.
-5. SUBJECT - Specific. Format: "Intro: [Name A] ↔ [Name B] - [context in 3-4 words]"
-6. BCC - End with "you can move me to BCC" or equivalent.
-7. NO SIGNATURE - Never include a sign-off name or signature block.
-8. STRUCTURE - Two blocks: one for each person with their nugget and a link if available.
+5. SUBJECT - Specific. Format: "Intro: [Name A] ↔ [Name B] — [context in 3-4 words]"
+6. BCC - End with a line like "Feel free to move me to BCC" or equivalent.
+7. NO SIGNATURE - Never include a sign-off name or signature block. No "Best," no "Cheers," nothing.
+8. STRUCTURE - Two short blocks: one for each person with their nugget.
 
 Output format:
 - First line: SUBJECT: [the subject line]
 - Then a blank line
-- Then the email body
+- Then the email body (plain text, no markdown)
 
 Write the email in the requested language. Match the tone exactly.`;
 
