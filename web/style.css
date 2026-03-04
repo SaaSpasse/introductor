@@ -53,6 +53,25 @@ textarea::placeholder, input::placeholder { color: var(--text-secondary); opacit
 .pill:hover { border-color: var(--accent); color: var(--accent); }
 .pill.active { background: var(--accent); color: #fff; border-color: var(--accent); }
 
+.email-fields { margin-bottom: 16px; }
+.email-row { display: flex; gap: 10px; }
+.email-input { flex: 1; padding: 10px 14px; font-size: 0.85rem; }
+.optional-tag { font-weight: 400; color: var(--text-secondary); opacity: 0.6; text-transform: none; letter-spacing: 0; }
+
+/* Research phase */
+.research-phase { padding: 20px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 16px; }
+.research-phase.fade-out { opacity: 0; transition: opacity 0.6s ease; }
+.research-steps { display: flex; flex-direction: column; gap: 16px; }
+.research-step { display: flex; align-items: flex-start; gap: 12px; opacity: 0; animation: fadeSlideIn 0.4s ease forwards; }
+.research-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 6px; flex-shrink: 0; background: var(--border); }
+.research-step.searching .research-dot { background: var(--accent); animation: pulse 1.2s ease infinite; }
+.research-step.found .research-dot { background: var(--accent); }
+.research-step.writing .research-dot { background: var(--accent); animation: pulse 1.2s ease infinite; }
+.research-label { font-size: 0.85rem; font-weight: 500; color: var(--text); }
+.research-detail { font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px; line-height: 1.4; }
+@keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.7); } }
+@keyframes fadeSlideIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
 .expandable { margin-bottom: 20px; }
 .expand-toggle { background: none; border: none; color: var(--accent); font-family: var(--font-body); font-size: 0.85rem; cursor: pointer; padding: 4px 0; transition: opacity 0.2s; }
 .expand-toggle:hover { opacity: 0.7; }
@@ -98,6 +117,7 @@ footer { text-align: center; padding: 16px 0; color: var(--text-secondary); font
   .hero-title { font-size: 2.2rem; }
   .hero-subtitle { font-size: 1rem; }
   .options-grid { flex-direction: column; gap: 12px; }
+  .email-row { flex-direction: column; }
   .output-actions { flex-direction: column; }
   .output-actions .btn-action { width: 100%; text-align: center; }
 }

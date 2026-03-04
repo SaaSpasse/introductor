@@ -9,7 +9,9 @@ const defaultState = {
   tone: 'warm',
   language: 'en',
   yourName: '',
-  personal: ''
+  personal: '',
+  emailA: '',
+  emailB: ''
 };
 
 function loadState() {
@@ -127,7 +129,10 @@ function shakeField(id) {
   setTimeout(() => el.classList.remove('shake'), 500);
 }
 
-// --- Research phase UI ---
+// --- Research phase UI (queued with delays for polish) ---
+let eventQueue = [];
+let processingQueue = false;
+
 function resetResearchPhase() {
   const researchPhase = document.getElementById('research-phase');
   if (!researchPhase) return;
@@ -135,11 +140,17 @@ function resetResearchPhase() {
   researchPhase.classList.remove('fade-out');
   const steps = researchPhase.querySelector('.research-steps');
   if (steps) steps.innerHTML = '';
+  eventQueue = [];
+  processingQueue = false;
 }
 
 function showResearchPhase() {
   const researchPhase = document.getElementById('research-phase');
   if (researchPhase) researchPhase.classList.remove('hidden');
+}
+
+function delay(ms) {
+  return new Promise(r => setTimeout(r, ms));
 }
 
 function addSearchStart(person) {
@@ -153,7 +164,7 @@ function addSearchStart(person) {
   div.innerHTML = `
     <div class="research-dot"></div>
     <div class="research-content">
-      <div class="research-label">Searching for ${person}...</div>
+      <div class="research-label">Searching for ${person}</div>
     </div>
   `;
   steps.appendChild(div);
@@ -164,11 +175,13 @@ function addSearchResult(person, summary) {
   if (!step) return;
   step.classList.remove('searching');
   step.classList.add('found');
+  // Truncate summary for display
+  const short = summary.length > 120 ? summary.slice(0, 120) + '...' : summary;
   step.innerHTML = `
     <div class="research-dot"></div>
     <div class="research-content">
-      <div class="research-label">${person}</div>
-      <div class="research-detail">${summary}</div>
+      <div class="research-label">Found context for ${person}</div>
+      <div class="research-detail">${short}</div>
     </div>
   `;
 }
@@ -182,7 +195,7 @@ function addWritingStep() {
   div.innerHTML = `
     <div class="research-dot"></div>
     <div class="research-content">
-      <div class="research-label">Writing your introduction...</div>
+      <div class="research-label">Crafting your introduction</div>
     </div>
   `;
   steps.appendChild(div);
@@ -194,56 +207,74 @@ function fadeOutResearchPhase() {
   researchPhase.classList.add('fade-out');
   setTimeout(() => {
     researchPhase.classList.add('hidden');
-  }, 400);
+  }, 600);
 }
 
-// --- Event handler for SSE events ---
-function handleEvent(event) {
-  switch (event.type) {
-    case 'search_start':
-      addSearchStart(event.person);
-      break;
+// Process queued events with delays for a polished feel
+async function processEventQueue() {
+  if (processingQueue) return;
+  processingQueue = true;
 
-    case 'search_result':
-      addSearchResult(event.person, event.summary);
-      break;
+  while (eventQueue.length > 0) {
+    const event = eventQueue.shift();
 
-    case 'writing':
-      addWritingStep();
-      break;
+    switch (event.type) {
+      case 'search_start':
+        addSearchStart(event.person);
+        await delay(800);
+        break;
 
-    case 'text':
-      if (!firstTextReceived) {
-        firstTextReceived = true;
-        fadeOutResearchPhase();
-        // Show output elements
-        document.getElementById('subject-row').classList.remove('hidden');
-        document.getElementById('intro-body').classList.remove('hidden');
-        document.getElementById('output-actions').classList.remove('hidden');
-        document.getElementById('intro-body').classList.add('streaming');
-      }
-      document.getElementById('intro-body').textContent += event.content;
-      break;
+      case 'search_result':
+        addSearchResult(event.person, event.summary);
+        await delay(1000);
+        break;
 
-    case 'subject':
-      document.getElementById('subject-text').textContent = event.content;
-      break;
+      case 'writing':
+        addWritingStep();
+        await delay(600);
+        break;
 
-    case 'done':
-      document.getElementById('intro-body').classList.remove('streaming');
-      document.getElementById('intro-body').contentEditable = 'true';
-      document.getElementById('generate-btn').disabled = false;
-      // Save last result for copy
-      lastResult = {
-        subject: document.getElementById('subject-text').textContent,
-        body: document.getElementById('intro-body').textContent
-      };
-      break;
+      case 'text':
+        if (!firstTextReceived) {
+          firstTextReceived = true;
+          await delay(400);
+          fadeOutResearchPhase();
+          await delay(600);
+          document.getElementById('subject-row').classList.remove('hidden');
+          document.getElementById('intro-body').classList.remove('hidden');
+          document.getElementById('output-actions').classList.remove('hidden');
+          document.getElementById('intro-body').classList.add('streaming');
+        }
+        document.getElementById('intro-body').textContent += event.content;
+        break;
 
-    case 'error':
-      showError(event.message);
-      break;
+      case 'subject':
+        document.getElementById('subject-text').textContent = event.content;
+        break;
+
+      case 'done':
+        document.getElementById('intro-body').classList.remove('streaming');
+        document.getElementById('intro-body').contentEditable = 'true';
+        document.getElementById('generate-btn').disabled = false;
+        lastResult = {
+          subject: document.getElementById('subject-text').textContent,
+          body: document.getElementById('intro-body').textContent
+        };
+        break;
+
+      case 'error':
+        showError(event.message);
+        break;
+    }
   }
+
+  processingQueue = false;
+}
+
+// --- Event handler for SSE events (queues for delayed display) ---
+function handleEvent(event) {
+  eventQueue.push(event);
+  processEventQueue();
 }
 
 // --- SSE processor ---
@@ -352,6 +383,8 @@ function syncStateFromDOM() {
   state.why = document.getElementById('why').value;
   state.personal = document.getElementById('personal').value;
   state.yourName = document.getElementById('your-name').value;
+  state.emailA = document.getElementById('email-a').value;
+  state.emailB = document.getElementById('email-b').value;
   saveState();
 }
 
@@ -361,6 +394,8 @@ function restoreDOM() {
   document.getElementById('why').value = state.why;
   document.getElementById('personal').value = state.personal;
   document.getElementById('your-name').value = state.yourName;
+  document.getElementById('email-a').value = state.emailA;
+  document.getElementById('email-b').value = state.emailB;
 
   // Pills
   setActivePill('tone-pills', state.tone);
@@ -431,7 +466,7 @@ function wireEvents() {
   });
 
   // Input sync
-  ['person-a', 'person-b', 'why', 'personal', 'your-name'].forEach(id => {
+  ['person-a', 'person-b', 'why', 'personal', 'your-name', 'email-a', 'email-b'].forEach(id => {
     const el = document.getElementById(id);
     el.addEventListener('input', () => {
       const key = id.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
@@ -466,7 +501,9 @@ function wireEvents() {
   document.getElementById('email-btn').addEventListener('click', () => {
     const subject = document.getElementById('subject-text').textContent;
     const body = document.getElementById('intro-body').innerText;
-    window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    const emails = [state.emailA, state.emailB].filter(e => e.trim());
+    const to = emails.join(',');
+    window.location.href = `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   });
 
   document.getElementById('regen-btn').addEventListener('click', () => generate());
