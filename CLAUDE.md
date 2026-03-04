@@ -31,12 +31,20 @@ Outil AI pour générer des introductions chaleureuses par email. Deux surfaces:
 - Épisode SaaSpasse ep. 98 + On R'dress Ça Ép. 07 (YouTube: LajrMfDMuoc)
 - Draft créé dans Missive (conversation aa591ffe-9e10-4618-bd5e-f74c838b15ae)
 
+## Ce qui est fait (session 2 - 2026-03-03)
+
+### Infrastructure
+- Repo GitHub: https://github.com/SaaSpasse/introductor
+- Deploy Vercel: https://introductor.vercel.app
+- CORS testé: `anthropic-dangerous-direct-browser-access` fonctionne, pas besoin de proxy
+- Skill installé: symlinks `~/.claude/commands/intro.md` + `~/.claude/skills/introductor/`
+
 ## Ce qui reste à faire
 
-### P0 - Valider et fixer
-1. Tester la web app live avec une clé API (vérifier que les appels Anthropic/OpenAI fonctionnent)
-2. Tester le CORS - l'appel direct à api.anthropic.com depuis le browser nécessite `anthropic-dangerous-direct-browser-access` header
-3. Installer le plugin dans Claude Code et tester `/intro` end-to-end
+### P0 - Repenser le flow web app
+1. Redesign terminal-core: gris/blanc/noir, minimaliste, pas de mauve
+2. Repenser le flow UX avec Frank (session prochaine)
+3. Tester `/intro` end-to-end dans une nouvelle session Claude Code
 4. Valider le mailto: link (encoding des caractères spéciaux FR)
 
 ### P1 - Améliorer le skill
@@ -48,23 +56,20 @@ Outil AI pour générer des introductions chaleureuses par email. Deux surfaces:
 
 ### P2 - Améliorer la web app
 1. Ajouter un mode "preview email" avec formatting HTML (pas juste du texte)
-2. Gérer le CORS proprement (proxy serverless Vercel si nécessaire)
-3. Ajouter des exemples pré-remplis (bouton "Try an example")
-4. Ajouter un compteur de mots live sur le output
-5. Dark mode optionnel
-6. Deploy sur Vercel
+2. Ajouter des exemples pré-remplis (bouton "Try an example")
+3. Ajouter un compteur de mots live sur le output
 
 ### P3 - Distribution
-1. Créer un repo GitHub public (org SaaSpasse ou perso)
-2. Publier le plugin sur un registry si applicable
-3. Landing page / Product Hunt
-4. Custom GPT pour ChatGPT users
+1. Publier le plugin sur un registry si applicable
+2. Landing page / Product Hunt
+3. Custom GPT pour ChatGPT users
 
 ## Stack technique
 - Skill: markdown (SKILL.md) + slash command
 - Web app: HTML/CSS/JS vanilla, zéro framework, zéro DB
 - API: appels directs Claude (Haiku) ou OpenAI (GPT-4o-mini)
-- Deploy prévu: Vercel (gratuit)
+- Deploy: Vercel (https://introductor.vercel.app)
+- Repo: https://github.com/SaaSpasse/introductor
 
 ## Contacts POC
 - Derek Morin: derek@pochesetfils.com (Poche et Fils, C'est beau, ex-Tabarnapp)
