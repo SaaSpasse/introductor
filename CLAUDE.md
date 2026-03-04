@@ -44,8 +44,8 @@ Outil AI pour générer des introductions chaleureuses par email. Deux surfaces:
 ### Redesign complet web app - flow Typeform + free tier
 - Flow wizard 5 étapes (1 question à la fois, transitions CSS translateY 250ms)
 - Answer piping: "Why connect Sarah and Mike?" (extraction prénoms)
-- Free tier via edge function (`api/generate.js`) - Haiku 4.5, rate limit 5/jour par IP
-- BYOK mode inchangé (Anthropic + OpenAI, streaming direct)
+- Free tier via edge function (`api/generate.js`) - rate limit 5/jour par IP
+- BYOK mode retiré (free tier seulement maintenant)
 - Design terminal-core: monospace, noir/blanc/gris, minimaliste
 - Pills pour tone (Casual/Warm pro/Formal) et language (EN/FR)
 - Output contenteditable (modifiable avant copie)
@@ -54,47 +54,53 @@ Outil AI pour générer des introductions chaleureuses par email. Deux surfaces:
 - Streaming SSE avec curseur clignotant pendant génération
 - Responsive mobile testé
 - Vercel: Root Directory = `web/`, CI/CD Git auto, env var ANTHROPIC_API_KEY configurée
-- Fix prompt: plain text au lieu de markdown dans le output
 
-### Fichiers modifiés/créés
-- `web/api/generate.js` (nouveau - serverless function)
-- `web/index.html` (rewrite - wizard 5 écrans)
-- `web/style.css` (rewrite - transitions, pills, streaming)
-- `web/app.js` (rewrite - state machine, 3 parsers streaming)
-- `web/vercel.json` (update - functions config)
+## Ce qui est fait (session 4 - 2026-03-04)
+
+### Brave Search + Sonnet + design fusion
+- Brave Search intégré dans `api/generate.js`: recherche auto LinkedIn/profils pour les 2 personnes
+- Recherches en parallèle (Promise.all), fallback gracieux si pas de clé ou si erreur
+- Modèle passé de Haiku à Sonnet 4.5 (`claude-sonnet-4-5-20250929`) - meilleure rédaction
+- Nouveau SSE protocol: 7 event types (search_start, search_result, writing, text, subject, done, error)
+- Research phase UX: animations séquentielles (dot pulse → found bounce → writing → fade out)
+- Subject line extraite séparément du stream Anthropic (buffering jusqu'au premier newline)
+- 9 thèmes CSS explorés, fusion `theme-final.css` créée (Fraunces + Inter + dusty rose #B5706A)
+- Compte Brave Search API créé et vérifié (francois@saaspasse.com)
+- Testé end-to-end: wizard + Sonnet OK, search skippé gracefully (pas de BRAVE_API_KEY encore)
 
 ## Ce qui reste à faire
 
-### P0
+### P0 - Immédiat
+1. Créer la clé API Brave dans le dashboard (https://api-dashboard.search.brave.com)
+2. Ajouter `BRAVE_API_KEY` dans Vercel env vars (Settings → Environment Variables)
+3. Tester avec search actif (voir les animations research phase en live)
+4. Choisir le thème final (theme-final.css pas encore par défaut, accessible via `?theme=final`)
+
+### P1 - Skill + web app
 1. Tester `/intro` end-to-end dans une nouvelle session Claude Code
-2. Valider le mailto: link (encoding des caractères spéciaux FR)
+2. Config `introductor.config.json` (email client, sources, ton, langue)
+3. Ajouter search Calendar/Missive/Notion dans le workflow du skill
 
-### P1 - Améliorer le skill
-1. Ajouter la config `introductor.config.json` pour que le skill soit configurable (email client, sources, ton, langue)
-2. Ajouter le search Google Calendar dans le workflow de recherche (trouvé l'email de Derek là)
-3. Ajouter le search Missive conversations dans le workflow
-4. Ajouter le search Notion podcast database dans le workflow
-5. Tester avec un cas d'intro standard 1↔1 (pas 1→group)
-
-### P2 - Améliorer la web app
-1. Ajouter un mode "preview email" avec formatting HTML (pas juste du texte)
-2. Ajouter des exemples pré-remplis (bouton "Try an example")
-3. Ajouter un compteur de mots live sur le output
+### P2 - Polish web app
+1. Exemples pré-remplis (bouton "Try an example")
+2. Compteur de mots live sur le output
+3. Preview email avec formatting HTML
 
 ### P3 - Distribution
-1. Publier le plugin sur un registry si applicable
-2. Landing page / Product Hunt
-3. Custom GPT pour ChatGPT users
+1. Landing page / Product Hunt
+2. Custom GPT pour ChatGPT users
 
 ## Stack technique
 - Skill: markdown (SKILL.md) + slash command
 - Web app: HTML/CSS/JS vanilla, zéro framework, zéro DB
-- Free tier: Vercel serverless function (`api/generate.js`) → Anthropic API (Haiku 4.5)
-- BYOK: appels directs Claude (Haiku) ou OpenAI (GPT-4o-mini) depuis le browser
-- Rate limit: 5/jour par IP (in-memory Map, ~0.001$/intro)
+- Backend: Vercel Edge Function (`api/generate.js`) → Brave Search + Anthropic Sonnet 4.5
+- Modèle: `claude-sonnet-4-5-20250929` (max_tokens: 1024, ~0.01$/intro)
+- Search: Brave Search API (linkedin enrichment, top 3 snippets, 300 chars summary)
+- Rate limit: 5/jour par IP (in-memory Map)
 - Deploy: Vercel (https://introductor.vercel.app), CI/CD Git auto, root dir `web/`
 - Repo: https://github.com/SaaSpasse/introductor
-- Env var Vercel: `ANTHROPIC_API_KEY` (clé nommée "introductor" sur console Anthropic)
+- Env vars Vercel: `ANTHROPIC_API_KEY`, `BRAVE_API_KEY` (à ajouter)
+- Compte Brave: francois@saaspasse.com (vérifié, clé API à créer)
 
 ## Contacts POC
 - Derek Morin: derek@pochesetfils.com (Poche et Fils, C'est beau, ex-Tabarnapp)
