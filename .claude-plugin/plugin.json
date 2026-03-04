@@ -1,0 +1,9 @@
+{
+  "name": "introductor",
+  "description": "AI-powered warm email introductions. Research people, craft personalized intro emails, and draft them in your email client.",
+  "version": "1.0.0",
+  "author": {
+    "name": "François Lanthier Nadeau",
+    "email": "francois@saaspasse.com"
+  }
+}

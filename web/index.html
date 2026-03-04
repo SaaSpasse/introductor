@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Introductor - AI-Powered Warm Introductions</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Introductor</h1>
+      <p class="subtitle">Craft warm, human email introductions in seconds.</p>
+    </header>
+
+    <main>
+      <!-- API Key -->
+      <div class="api-key-section">
+        <label for="api-key">Your API key</label>
+        <div class="api-key-row">
+          <select id="provider">
+            <option value="anthropic">Claude (Anthropic)</option>
+            <option value="openai">ChatGPT (OpenAI)</option>
+          </select>
+          <input type="password" id="api-key" placeholder="sk-..." autocomplete="off">
+        </div>
+        <p class="hint">Your key stays in your browser. Nothing is stored or sent to our servers.</p>
+      </div>
+
+      <!-- Form -->
+      <form id="intro-form">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="person-a">Person A</label>
+            <textarea id="person-a" rows="3" placeholder="Name, role, company, and any context you have. E.g.: Sarah Chen, CTO at TalentAI, building AI hiring tools, raised $2M seed"></textarea>
+          </div>
+          <div class="form-group">
+            <label for="person-b">Person B</label>
+            <textarea id="person-b" rows="3" placeholder="Name, role, company, and any context you have. E.g.: Mike Park, VP Engineering at Acme, hiring 20 engineers this quarter"></textarea>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="why">Why connect them?</label>
+          <textarea id="why" rows="2" placeholder="E.g.: Sarah's tool could help Mike's hiring pipeline. They're both in Montreal tech."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="personal">Your personal touch <span class="optional">(optional)</span></label>
+          <textarea id="personal" rows="2" placeholder="Anything personal you want to add? An anecdote, how you know them, a shared experience..."></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="tone">Tone</label>
+            <select id="tone">
+              <option value="casual">Casual (friends)</option>
+              <option value="warm" selected>Warm professional</option>
+              <option value="formal">Formal</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="language">Language</label>
+            <select id="language">
+              <option value="en" selected>English</option>
+              <option value="fr">Fran&ccedil;ais</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="your-name">Your name</label>
+            <input type="text" id="your-name" placeholder="Your first name">
+          </div>
+        </div>
+
+        <button type="submit" id="generate-btn">Generate introduction</button>
+      </form>
+
+      <!-- Output -->
+      <div id="output" class="output hidden">
+        <div class="output-header">
+          <h2>Your introduction</h2>
+          <div class="output-actions">
+            <button id="copy-btn" class="btn-secondary" title="Copy to clipboard">Copy</button>
+            <button id="email-btn" class="btn-secondary" title="Open in email client">Open in email</button>
+            <button id="regen-btn" class="btn-secondary" title="Regenerate">Regenerate</button>
+          </div>
+        </div>
+        <div id="subject-line" class="subject-line"></div>
+        <div id="intro-text" class="intro-text"></div>
+      </div>
+
+      <!-- Loading -->
+      <div id="loading" class="loading hidden">
+        <div class="spinner"></div>
+        <p>Crafting your introduction...</p>
+      </div>
+
+      <!-- Error -->
+      <div id="error" class="error hidden"></div>
+    </main>
+
+    <footer>
+      <p>No data is stored. Your information never leaves your browser session.</p>
+      <p>Built with <a href="https://github.com/francoislanthiernadeau/introductor" target="_blank">Introductor</a> - also available as a <a href="https://github.com/francoislanthiernadeau/introductor#claude-code-skill" target="_blank">Claude Code skill</a>.</p>
+    </footer>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
