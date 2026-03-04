@@ -30,10 +30,7 @@ const defaultState = {
   tone: 'warm',
   language: 'en',
   yourName: '',
-  personal: '',
-  mode: 'free',
-  provider: 'anthropic',
-  apiKey: ''
+  personal: ''
 };
 
 function loadState() {
@@ -190,65 +187,11 @@ async function streamFromEdgeFunction(prompt) {
     throw new Error(err.error || `Server error: ${res.status}`);
   }
 
-  await processSSE(res.body, 'edge');
+  await processSSE(res.body);
 }
 
-// --- BYOK Anthropic streaming ---
-async function streamFromAnthropic(apiKey, prompt) {
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true'
-    },
-    body: JSON.stringify({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 1024,
-      system: SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: prompt }],
-      stream: true
-    })
-  });
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error?.message || `API error: ${res.status}`);
-  }
-
-  await processSSE(res.body, 'anthropic');
-}
-
-// --- BYOK OpenAI streaming ---
-async function streamFromOpenAI(apiKey, prompt) {
-  const res = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
-    },
-    body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: prompt }
-      ],
-      max_tokens: 1024,
-      stream: true
-    })
-  });
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error?.message || `API error: ${res.status}`);
-  }
-
-  await processSSE(res.body, 'openai');
-}
-
-// --- Unified SSE processor ---
-async function processSSE(body, format) {
+// --- SSE processor ---
+async function processSSE(body) {
   const reader = body.getReader();
   const decoder = new TextDecoder();
   let fullText = '';
@@ -267,25 +210,13 @@ async function processSSE(body, format) {
       const data = line.slice(6);
       if (data === '[DONE]') break;
 
-      let chunk = '';
       try {
-        if (format === 'edge') {
-          chunk = JSON.parse(data);
-        } else if (format === 'anthropic') {
-          const event = JSON.parse(data);
-          if (event.type === 'content_block_delta' && event.delta?.type === 'text_delta') {
-            chunk = event.delta.text;
-          }
-        } else if (format === 'openai') {
-          const event = JSON.parse(data);
-          chunk = event.choices?.[0]?.delta?.content || '';
+        const chunk = JSON.parse(data);
+        if (chunk) {
+          fullText += chunk;
+          renderStreaming(fullText);
         }
       } catch { continue; }
-
-      if (chunk) {
-        fullText += chunk;
-        renderStreaming(fullText);
-      }
     }
   }
 
@@ -295,12 +226,6 @@ async function processSSE(body, format) {
 // --- Generate ---
 async function generate() {
   syncStateFromDOM();
-
-  if (state.mode === 'byok' && !state.apiKey.trim()) {
-    showError('Please enter your API key.');
-    return;
-  }
-
   goToStep(5);
 
   document.getElementById('subject-text').textContent = '';
@@ -313,16 +238,8 @@ async function generate() {
   const generateBtn = document.getElementById('generate-btn');
   generateBtn.disabled = true;
 
-  const prompt = buildPrompt(state);
-
   try {
-    if (state.mode === 'free') {
-      await streamFromEdgeFunction(prompt);
-    } else if (state.provider === 'anthropic') {
-      await streamFromAnthropic(state.apiKey, prompt);
-    } else {
-      await streamFromOpenAI(state.apiKey, prompt);
-    }
+    await streamFromEdgeFunction(buildPrompt(state));
   } catch (err) {
     showError(err.message);
   } finally {
@@ -349,8 +266,6 @@ function syncStateFromDOM() {
   state.why = document.getElementById('why').value;
   state.personal = document.getElementById('personal').value;
   state.yourName = document.getElementById('your-name').value;
-  state.apiKey = document.getElementById('api-key').value;
-  state.provider = document.getElementById('provider').value;
   saveState();
 }
 
@@ -360,19 +275,10 @@ function restoreDOM() {
   document.getElementById('why').value = state.why;
   document.getElementById('personal').value = state.personal;
   document.getElementById('your-name').value = state.yourName;
-  document.getElementById('api-key').value = state.apiKey;
-  document.getElementById('provider').value = state.provider;
 
   // Pills
   setActivePill('tone-pills', state.tone);
   setActivePill('lang-pills', state.language);
-
-  // Mode
-  document.querySelectorAll('.mode-btn').forEach(b => {
-    b.classList.toggle('active', b.dataset.mode === state.mode);
-  });
-  document.getElementById('byok-config').classList.toggle('hidden', state.mode !== 'byok');
-  document.getElementById('free-hint').classList.toggle('hidden', state.mode !== 'free');
 
   // Personal touch
   if (state.personal) {
@@ -428,18 +334,6 @@ function wireEvents() {
     });
   });
 
-  // Mode toggle
-  document.querySelectorAll('.mode-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      state.mode = btn.dataset.mode;
-      saveState();
-      document.getElementById('byok-config').classList.toggle('hidden', state.mode !== 'byok');
-      document.getElementById('free-hint').classList.toggle('hidden', state.mode !== 'free');
-    });
-  });
-
   // Personal touch expander
   document.getElementById('personal-toggle').addEventListener('click', () => {
     const ta = document.getElementById('personal');
@@ -451,19 +345,13 @@ function wireEvents() {
   });
 
   // Input sync
-  ['person-a', 'person-b', 'why', 'personal', 'your-name', 'api-key'].forEach(id => {
+  ['person-a', 'person-b', 'why', 'personal', 'your-name'].forEach(id => {
     const el = document.getElementById(id);
     el.addEventListener('input', () => {
       const key = id.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
       state[key] = el.value;
       saveState();
     });
-  });
-
-  // Provider select
-  document.getElementById('provider').addEventListener('change', (e) => {
-    state.provider = e.target.value;
-    saveState();
   });
 
   // Generate
@@ -498,7 +386,7 @@ function wireEvents() {
   document.getElementById('regen-btn').addEventListener('click', () => generate());
 
   document.getElementById('start-over-btn').addEventListener('click', () => {
-    const keep = { apiKey: state.apiKey, mode: state.mode, provider: state.provider, yourName: state.yourName };
+    const keep = { yourName: state.yourName };
     state = { ...defaultState, ...keep };
     saveState();
     restoreDOM();

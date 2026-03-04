@@ -94,24 +94,6 @@
             <textarea id="personal" rows="2" class="hidden" placeholder="An anecdote, shared experience, how you know them..."></textarea>
           </div>
 
-          <div class="mode-section">
-            <div class="mode-toggle">
-              <button class="mode-btn active" data-mode="free">Free</button>
-              <button class="mode-btn" data-mode="byok">Your API key</button>
-            </div>
-            <div id="byok-config" class="hidden">
-              <div class="byok-row">
-                <select id="provider">
-                  <option value="anthropic">Claude</option>
-                  <option value="openai">OpenAI</option>
-                </select>
-                <input type="password" id="api-key" placeholder="sk-..." autocomplete="off">
-              </div>
-              <p class="hint">Your key stays in your browser. Nothing stored.</p>
-            </div>
-            <p class="hint" id="free-hint">5 intros per day. No API key needed.</p>
-          </div>
-
           <button class="btn-generate" id="generate-btn">Generate introduction</button>
         </div>
 
@@ -145,7 +127,6 @@
 
     <footer>
       <p>No data stored. Everything stays in your browser.</p>
-      <p><a href="https://github.com/SaaSpasse/introductor">GitHub</a> &middot; also a <a href="https://github.com/SaaSpasse/introductor#claude-code-skill">Claude Code skill</a></p>
     </footer>
   </div>
   <script src="app.js"></script>

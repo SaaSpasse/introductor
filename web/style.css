@@ -241,59 +241,6 @@ textarea::placeholder, input::placeholder {
   color: var(--text);
 }
 
-/* Mode toggle */
-.mode-section {
-  border-top: 1px solid var(--border);
-  padding-top: 16px;
-  margin-bottom: 16px;
-}
-
-.mode-toggle {
-  display: inline-flex;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  overflow: hidden;
-  margin-bottom: 8px;
-}
-
-.mode-btn {
-  padding: 6px 16px;
-  border: none;
-  background: var(--bg);
-  font-family: var(--mono);
-  font-size: 0.75rem;
-  cursor: pointer;
-  transition: all 0.15s;
-  color: var(--text);
-}
-
-.mode-btn.active {
-  background: var(--accent);
-  color: #fff;
-}
-
-.byok-row {
-  display: flex;
-  gap: 6px;
-  margin-top: 6px;
-}
-
-.byok-row select {
-  flex: 0 0 120px;
-  font-size: 0.8rem;
-}
-
-.byok-row input {
-  flex: 1;
-  font-size: 0.8rem;
-}
-
-.hint {
-  font-size: 0.7rem;
-  color: var(--text-secondary);
-  margin-top: 4px;
-}
-
 /* Generate button */
 .btn-generate {
   width: 100%;
@@ -443,10 +390,6 @@ footer a:hover {
   border-color: var(--text);
 }
 
-footer p + p {
-  margin-top: 2px;
-}
-
 /* Shake validation */
 @keyframes shake {
   0%, 100% { transform: translateX(0); }
@@ -475,14 +418,6 @@ footer p + p {
   .options-grid {
     flex-direction: column;
     gap: 12px;
-  }
-
-  .byok-row {
-    flex-direction: column;
-  }
-
-  .byok-row select {
-    flex: none;
   }
 
   .output-actions {
