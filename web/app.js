@@ -2,7 +2,7 @@
 const STATE_KEY = 'introductor_state';
 
 const defaultState = {
-  currentStep: 1,
+  currentStep: 0,
   personA: '',
   personB: '',
   why: '',
@@ -50,17 +50,17 @@ function updateWhyLabel() {
 
 // --- Wizard navigation ---
 function goToStep(n) {
-  if (n < 1 || n > 5) return;
+  if (n < 0 || n > 5) return;
   state.currentStep = n;
   saveState();
 
   const track = document.getElementById('wizard-track');
   const stepHeight = document.querySelector('.step').offsetHeight;
-  track.style.transform = `translateY(-${(n - 1) * stepHeight}px)`;
+  track.style.transform = `translateY(-${n * stepHeight}px)`;
 
   // Progress
   const progress = document.getElementById('progress');
-  if (n <= 4) {
+  if (n >= 1 && n <= 4) {
     progress.textContent = `${n} / 4`;
     progress.classList.remove('hidden');
   } else {
@@ -72,8 +72,10 @@ function goToStep(n) {
 
   // Auto-focus
   const step = document.querySelector(`.step[data-step="${n}"]`);
-  const focusable = step.querySelector('textarea, input[type="text"]');
-  if (focusable) setTimeout(() => focusable.focus(), 300);
+  if (step) {
+    const focusable = step.querySelector('textarea, input[type="text"]');
+    if (focusable) setTimeout(() => focusable.focus(), 300);
+  }
 }
 
 // Recalculate on resize
@@ -84,7 +86,30 @@ function recalcSteps() {
     s.style.height = `${stepHeight}px`;
   });
   const track = document.getElementById('wizard-track');
-  track.style.transform = `translateY(-${(state.currentStep - 1) * stepHeight}px)`;
+  track.style.transform = `translateY(-${state.currentStep * stepHeight}px)`;
+}
+
+// --- Arrow key / Enter navigation ---
+function canNavigateWithKeys() {
+  const active = document.activeElement;
+  // Don't navigate if typing in a textarea or contenteditable
+  if (active && (active.tagName === 'TEXTAREA' || active.isContentEditable)) return false;
+  return true;
+}
+
+function getNextStep(current) {
+  if (current === 0) return 1;
+  if (current >= 1 && current <= 3) {
+    if (validateStep(current)) return current + 1;
+    return current;
+  }
+  return current;
+}
+
+function getPrevStep(current) {
+  if (current === 1) return 0;
+  if (current > 1 && current <= 5) return current - 1;
+  return current;
 }
 
 // --- Validation ---
@@ -451,7 +476,30 @@ function wireEvents() {
     state = { ...defaultState, ...keep };
     saveState();
     restoreDOM();
-    goToStep(1);
+    goToStep(0);
+  });
+
+  // Hero start button
+  document.getElementById('hero-start').addEventListener('click', () => goToStep(1));
+
+  // Arrow key navigation
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+      if (!canNavigateWithKeys()) return;
+      e.preventDefault();
+      syncStateFromDOM();
+      goToStep(getNextStep(state.currentStep));
+    }
+    if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+      if (!canNavigateWithKeys()) return;
+      e.preventDefault();
+      goToStep(getPrevStep(state.currentStep));
+    }
+    // Enter on hero screen
+    if (e.key === 'Enter' && state.currentStep === 0) {
+      e.preventDefault();
+      goToStep(1);
+    }
   });
 
   // Resize handler
@@ -462,9 +510,8 @@ function wireEvents() {
 function init() {
   restoreDOM();
   wireEvents();
-  // Don't resume to step 5 (output) on reload - go to step 4 max
-  const resumeStep = Math.min(state.currentStep, 4);
-  goToStep(resumeStep);
+  // Always start at hero screen on load (data is preserved in localStorage)
+  goToStep(0);
 }
 
 document.addEventListener('DOMContentLoaded', init);
