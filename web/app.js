@@ -1,24 +1,3 @@
-// --- System prompt ---
-const SYSTEM_PROMPT = `You are Introductor, an expert at crafting warm, human email introductions.
-
-Your job: generate a warm intro email that connects two people. Follow these rules strictly:
-
-1. BREVITY - Max 150 words. Scannable in 15 seconds.
-2. NUGGETS - 1-2 credibility data points per person. Not a resume.
-3. PLAIN TEXT ONLY - No markdown, no bold, no links, no formatting. This is a plain text email.
-4. TONE - Match the requested tone (casual/warm/formal). Sound human, not corporate.
-5. SUBJECT - Specific. Format: "Intro: [Name A] ↔ [Name B] — [context in 3-4 words]"
-6. BCC - End with a line like "Feel free to move me to BCC" or equivalent.
-7. NO SIGNATURE - Never include a sign-off name or signature block. No "Best," no "Cheers," nothing.
-8. STRUCTURE - Two short blocks: one for each person with their nugget.
-
-Output format:
-- First line: SUBJECT: [the subject line]
-- Then a blank line
-- Then the email body (plain text, no markdown)
-
-Write the email in the requested language. Match the tone exactly.`;
-
 // --- State management ---
 const STATE_KEY = 'introductor_state';
 
@@ -48,23 +27,7 @@ function saveState() {
 
 let state = loadState();
 let lastResult = null;
-
-// --- Prompt builder ---
-function buildPrompt(data) {
-  let prompt = `Generate a warm email introduction.\n\n`;
-  prompt += `**Person A:** ${data.personA}\n\n`;
-  prompt += `**Person B:** ${data.personB}\n\n`;
-  prompt += `**Why connect them:** ${data.why}\n\n`;
-  if (data.personal) {
-    prompt += `**Personal touch from the introducer:** ${data.personal}\n\n`;
-  }
-  prompt += `**Tone:** ${data.tone}\n`;
-  prompt += `**Language:** ${data.language === 'fr' ? 'French (Quebec)' : 'English'}\n`;
-  if (data.yourName) {
-    prompt += `**Introducer's name:** ${data.yourName}\n`;
-  }
-  return prompt;
-}
+let firstTextReceived = false;
 
 // --- Name extraction for answer piping ---
 function extractFirstName(text) {
@@ -139,62 +102,129 @@ function shakeField(id) {
   setTimeout(() => el.classList.remove('shake'), 500);
 }
 
-// --- Streaming parsers ---
-function parseOutputLive(text) {
-  const lines = text.split('\n');
-  let subject = '';
-  let bodyStart = 0;
+// --- Research phase UI ---
+function resetResearchPhase() {
+  const researchPhase = document.getElementById('research-phase');
+  if (!researchPhase) return;
+  researchPhase.classList.add('hidden');
+  researchPhase.classList.remove('fade-out');
+  const steps = researchPhase.querySelector('.research-steps');
+  if (steps) steps.innerHTML = '';
+}
 
-  for (let i = 0; i < lines.length; i++) {
-    if (lines[i].trim().toLowerCase().startsWith('subject:')) {
-      subject = lines[i].replace(/^subject:\s*/i, '').trim();
-      bodyStart = i + 1;
-      while (bodyStart < lines.length && lines[bodyStart].trim() === '') bodyStart++;
+function showResearchPhase() {
+  const researchPhase = document.getElementById('research-phase');
+  if (researchPhase) researchPhase.classList.remove('hidden');
+}
+
+function addSearchStart(person) {
+  showResearchPhase();
+  const steps = document.querySelector('#research-phase .research-steps');
+  if (!steps) return;
+
+  const div = document.createElement('div');
+  div.className = 'research-step searching';
+  div.dataset.person = person;
+  div.innerHTML = `
+    <div class="research-dot"></div>
+    <div class="research-content">
+      <div class="research-label">Searching for ${person}...</div>
+    </div>
+  `;
+  steps.appendChild(div);
+}
+
+function addSearchResult(person, summary) {
+  const step = document.querySelector(`.research-step[data-person="${person}"]`);
+  if (!step) return;
+  step.classList.remove('searching');
+  step.classList.add('found');
+  step.innerHTML = `
+    <div class="research-dot"></div>
+    <div class="research-content">
+      <div class="research-label">${person}</div>
+      <div class="research-detail">${summary}</div>
+    </div>
+  `;
+}
+
+function addWritingStep() {
+  const steps = document.querySelector('#research-phase .research-steps');
+  if (!steps) return;
+
+  const div = document.createElement('div');
+  div.className = 'research-step writing';
+  div.innerHTML = `
+    <div class="research-dot"></div>
+    <div class="research-content">
+      <div class="research-label">Writing your introduction...</div>
+    </div>
+  `;
+  steps.appendChild(div);
+}
+
+function fadeOutResearchPhase() {
+  const researchPhase = document.getElementById('research-phase');
+  if (!researchPhase) return;
+  researchPhase.classList.add('fade-out');
+  setTimeout(() => {
+    researchPhase.classList.add('hidden');
+  }, 400);
+}
+
+// --- Event handler for SSE events ---
+function handleEvent(event) {
+  switch (event.type) {
+    case 'search_start':
+      addSearchStart(event.person);
       break;
-    }
+
+    case 'search_result':
+      addSearchResult(event.person, event.summary);
+      break;
+
+    case 'writing':
+      addWritingStep();
+      break;
+
+    case 'text':
+      if (!firstTextReceived) {
+        firstTextReceived = true;
+        fadeOutResearchPhase();
+        // Show output elements
+        document.getElementById('subject-row').classList.remove('hidden');
+        document.getElementById('intro-body').classList.remove('hidden');
+        document.getElementById('output-actions').classList.remove('hidden');
+        document.getElementById('intro-body').classList.add('streaming');
+      }
+      document.getElementById('intro-body').textContent += event.content;
+      break;
+
+    case 'subject':
+      document.getElementById('subject-text').textContent = event.content;
+      break;
+
+    case 'done':
+      document.getElementById('intro-body').classList.remove('streaming');
+      document.getElementById('intro-body').contentEditable = 'true';
+      document.getElementById('generate-btn').disabled = false;
+      // Save last result for copy
+      lastResult = {
+        subject: document.getElementById('subject-text').textContent,
+        body: document.getElementById('intro-body').textContent
+      };
+      break;
+
+    case 'error':
+      showError(event.message);
+      break;
   }
-
-  const body = lines.slice(bodyStart).join('\n').trim();
-  return { subject, body };
-}
-
-function renderStreaming(fullText) {
-  const { subject, body } = parseOutputLive(fullText);
-  if (subject) document.getElementById('subject-text').textContent = subject;
-  document.getElementById('intro-body').textContent = body;
-}
-
-function finalizeOutput(fullText) {
-  const { subject, body } = parseOutputLive(fullText);
-  document.getElementById('subject-text').textContent = subject;
-  document.getElementById('intro-body').textContent = body;
-  lastResult = { subject, body };
-}
-
-// --- Free tier: via edge function ---
-async function streamFromEdgeFunction(prompt) {
-  const res = await fetch('/api/generate', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ system: SYSTEM_PROMPT, prompt })
-  });
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    if (res.status === 429) {
-      throw new Error('Daily limit reached (5/day). Switch to "Your API key" for unlimited access.');
-    }
-    throw new Error(err.error || `Server error: ${res.status}`);
-  }
-
-  await processSSE(res.body);
 }
 
 // --- SSE processor ---
 async function processSSE(body) {
   const reader = body.getReader();
   const decoder = new TextDecoder();
-  let fullText = '';
   let buffer = '';
 
   while (true) {
@@ -208,19 +238,17 @@ async function processSSE(body) {
     for (const line of lines) {
       if (!line.startsWith('data: ')) continue;
       const data = line.slice(6);
-      if (data === '[DONE]') break;
+      if (data === '[DONE]') continue;
 
       try {
-        const chunk = JSON.parse(data);
-        if (chunk) {
-          fullText += chunk;
-          renderStreaming(fullText);
-        }
-      } catch { continue; }
+        const event = JSON.parse(data);
+        handleEvent(event);
+      } catch {
+        // Skip malformed lines
+        continue;
+      }
     }
   }
-
-  finalizeOutput(fullText);
 }
 
 // --- Generate ---
@@ -228,23 +256,56 @@ async function generate() {
   syncStateFromDOM();
   goToStep(5);
 
+  // Reset output
   document.getElementById('subject-text').textContent = '';
   const introBody = document.getElementById('intro-body');
   introBody.textContent = '';
-  introBody.classList.add('streaming');
   introBody.contentEditable = 'false';
+  introBody.classList.remove('streaming');
   hideError();
+
+  // Reset research phase
+  resetResearchPhase();
+  firstTextReceived = false;
+
+  // Hide output elements until first text arrives
+  document.getElementById('subject-row').classList.add('hidden');
+  introBody.classList.add('hidden');
+  document.getElementById('output-actions').classList.add('hidden');
 
   const generateBtn = document.getElementById('generate-btn');
   generateBtn.disabled = true;
 
   try {
-    await streamFromEdgeFunction(buildPrompt(state));
+    const body = {
+      personA: state.personA,
+      personB: state.personB,
+      why: state.why,
+      tone: state.tone,
+      language: state.language,
+      yourName: state.yourName,
+      personal: state.personal
+    };
+
+    const res = await fetch('/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      if (res.status === 429) {
+        throw new Error('Daily limit reached (5 intros per day). Come back tomorrow!');
+      }
+      throw new Error(err.error || `Server error: ${res.status}`);
+    }
+
+    await processSSE(res.body);
   } catch (err) {
     showError(err.message);
-  } finally {
+    // Re-enable on error
     introBody.classList.remove('streaming');
-    introBody.contentEditable = 'true';
     generateBtn.disabled = false;
   }
 }

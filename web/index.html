@@ -4,7 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Introductor</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" id="theme-css" href="style.css">
+  <script>
+    const t = new URLSearchParams(location.search).get('theme');
+    if (t && ['a','a2','a3','a4','b','b2','b3','c','final'].includes(t)) {
+      document.getElementById('theme-css').href = `theme-${t}.css`;
+    }
+  </script>
 </head>
 <body>
   <div class="container">
@@ -104,7 +110,11 @@
           </div>
           <label class="step-label">Your introduction</label>
 
-          <div class="subject-row">
+          <div id="research-phase" class="research-phase hidden">
+            <div class="research-steps"></div>
+          </div>
+
+          <div id="subject-row" class="subject-row">
             <span class="subject-prefix">Subject:</span>
             <span id="subject-text" class="subject-text"></span>
             <button class="btn-copy-small" id="copy-subject">Copy</button>
@@ -112,7 +122,7 @@
 
           <div id="intro-body" class="intro-body" contenteditable="true"></div>
 
-          <div class="output-actions">
+          <div id="output-actions" class="output-actions">
             <button class="btn-action" id="copy-btn">Copy all</button>
             <button class="btn-action" id="email-btn">Open in email</button>
             <button class="btn-action" id="regen-btn">Regenerate</button>
