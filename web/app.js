@@ -245,7 +245,17 @@ async function processEventQueue() {
           document.getElementById('output-actions').classList.remove('hidden');
           document.getElementById('intro-body').classList.add('streaming');
         }
-        document.getElementById('intro-body').textContent += event.content;
+        // Typewriter effect: render text in small groups with micro-delays
+        {
+          const body = document.getElementById('intro-body');
+          const chars = event.content;
+          const chunkSize = 2;
+          for (let i = 0; i < chars.length; i += chunkSize) {
+            body.textContent += chars.slice(i, i + chunkSize);
+            body.scrollTop = body.scrollHeight;
+            if (chars.length > chunkSize) await delay(18);
+          }
+        }
         break;
 
       case 'subject':
@@ -253,9 +263,13 @@ async function processEventQueue() {
         break;
 
       case 'done':
+        // Flush any remaining text display
+        await delay(100);
         document.getElementById('intro-body').classList.remove('streaming');
         document.getElementById('intro-body').contentEditable = 'true';
         document.getElementById('generate-btn').disabled = false;
+        // Show Claude Code promo
+        document.getElementById('skill-promo')?.classList.remove('hidden');
         lastResult = {
           subject: document.getElementById('subject-text').textContent,
           body: document.getElementById('intro-body').textContent
@@ -328,6 +342,7 @@ async function generate() {
   document.getElementById('subject-row').classList.add('hidden');
   introBody.classList.add('hidden');
   document.getElementById('output-actions').classList.add('hidden');
+  document.getElementById('skill-promo')?.classList.add('hidden');
 
   const generateBtn = document.getElementById('generate-btn');
   generateBtn.disabled = true;
