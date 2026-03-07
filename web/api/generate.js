@@ -1,37 +1,20 @@
 export const config = { runtime: 'edge' };
 
-const rateLimitMap = new Map();
-const DAILY_LIMIT = 5;
+const ALLOWED_ORIGINS = [
+  'https://introductor.vercel.app',
+  'https://introductor.ai',
+  'http://localhost:3000',
+];
 
-function getRateLimitKey(ip) {
-  const today = new Date().toISOString().slice(0, 10);
-  return `${ip}:${today}`;
+function getCorsHeaders(request) {
+  const origin = request.headers.get('origin') || '';
+  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  return {
+    'Access-Control-Allow-Origin': allowedOrigin,
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+  };
 }
-
-function checkRateLimit(ip) {
-  const today = new Date().toISOString().slice(0, 10);
-  for (const [k] of rateLimitMap) {
-    if (!k.endsWith(today)) rateLimitMap.delete(k);
-  }
-
-  const key = getRateLimitKey(ip);
-  const count = rateLimitMap.get(key) || 0;
-  if (count >= DAILY_LIMIT) return false;
-  rateLimitMap.set(key, count + 1);
-  return true;
-}
-
-function getClientIP(request) {
-  return request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
-    || request.headers.get('x-real-ip')
-    || 'unknown';
-}
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
-};
 
 const SYSTEM_PROMPT = `You are Introductor, an expert at crafting warm, human email introductions.
 
@@ -113,6 +96,8 @@ function buildUserPrompt({ personA, personB, why, yourName, personal, searchResu
 }
 
 export default async function handler(request) {
+  const corsHeaders = getCorsHeaders(request);
+
   if (request.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -122,23 +107,6 @@ export default async function handler(request) {
   }
 
   try {
-    const ip = getClientIP(request);
-
-    if (!checkRateLimit(ip)) {
-      // Rate limited - stream an error event
-      const encoder = new TextEncoder();
-      const body = encoder.encode(
-        `data: ${JSON.stringify({ type: 'error', message: 'Daily limit reached (5 intros per day). Come back tomorrow!' })}\n\n`
-      );
-      return new Response(body, {
-        headers: {
-          'Content-Type': 'text/event-stream',
-          'Cache-Control': 'no-cache',
-          ...corsHeaders
-        }
-      });
-    }
-
     const { personA, personB, why, tone, language, yourName, personal } = await request.json();
 
     if (!personA || !personB || !why) {
@@ -225,7 +193,7 @@ export default async function handler(request) {
             'anthropic-version': '2023-06-01'
           },
           body: JSON.stringify({
-            model: 'claude-sonnet-4-5-20250929',
+            model: 'claude-sonnet-4-5-latest',
             max_tokens: 1024,
             system: systemPrompt,
             messages: [{ role: 'user', content: userPrompt }],
@@ -327,7 +295,7 @@ export default async function handler(request) {
   } catch (err) {
     return new Response(
       JSON.stringify({ error: err.message }),
-      { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+      { status: 500, headers: { 'Content-Type': 'application/json', ...getCorsHeaders(request) } }
     );
   }
 }

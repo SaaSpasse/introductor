@@ -6,37 +6,29 @@ No one combines AI text generation + contextual research + email client integrat
 
 ## What it does
 
-1. **Researches** both people (web, email history, calendar, podcast episodes, etc.)
+1. **Researches** both people (web search via Brave, plus email history, calendar, etc. via Claude Code skill)
 2. **Asks** you for personal context and tone preferences
 3. **Generates** a warm, concise intro email with credibility nuggets and relevant links
 4. **Drafts** it in your email client (Missive, Gmail, or copy-paste)
 
 ## Two ways to use it
 
-### Claude Code skill
+### Web app (free)
 
-Install as a plugin in Claude Code. Use `/intro` or just describe an intro you want to make.
+Open [introductor.vercel.app](https://introductor.vercel.app). No auth, no accounts, no data stored.
 
-```bash
-# Add the plugin
-claude plugin add /path/to/introductor
-```
-
-The skill has access to your MCPs (email, calendar, Notion, etc.) for deeper research.
-
-### Web app
-
-Open `web/index.html` in your browser. No auth, no accounts, no data stored.
-
-- Bring your own API key (Claude or OpenAI)
 - Fill in who you're introducing and why
+- Pick a tone (casual, warm pro, formal) and language (EN/FR)
 - Get a polished intro in seconds
 - Copy to clipboard or open in your email client
 
+### Claude Code skill
+
+Use `/intro` in Claude Code for deeper research using your MCPs (email, calendar, Notion, etc.).
+
 ```bash
-# Serve locally
-cd web && python3 -m http.server 3000
-# Open http://localhost:3000
+# The skill reads from ~/claude-code/introductor/skills/introductor/SKILL.md
+/intro Derek Morin and Émile David — video production collab
 ```
 
 ## Best practices encoded
@@ -57,9 +49,21 @@ introductor/
 ├── skills/introductor/SKILL.md          # Core skill logic
 ├── skills/introductor/references/       # Best practices & templates
 ├── commands/intro.md                    # /intro slash command
-├── web/                                 # Standalone web app
+├── web/                                 # Web app (Vercel)
+│   ├── index.html
+│   ├── style.css
+│   ├── app.js
+│   └── api/generate.js                  # Edge Function (Brave + Sonnet)
 └── .claude-plugin/plugin.json           # Plugin metadata
 ```
+
+## Tech
+
+- Vanilla HTML/CSS/JS (no framework)
+- Vercel Edge Function backend
+- Claude Sonnet 4.5 for generation
+- Brave Search API for LinkedIn enrichment
+- SSE streaming with typewriter effect
 
 ## License
 

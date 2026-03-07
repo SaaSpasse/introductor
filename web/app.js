@@ -94,8 +94,8 @@ function recalcSteps() {
 // --- Arrow key / Enter navigation ---
 function canNavigateWithKeys() {
   const active = document.activeElement;
-  // Don't navigate if typing in a textarea or contenteditable
-  if (active && (active.tagName === 'TEXTAREA' || active.isContentEditable)) return false;
+  // Don't navigate if typing in a textarea, input, or contenteditable
+  if (active && (active.tagName === 'TEXTAREA' || active.tagName === 'INPUT' || active.isContentEditable)) return false;
   return true;
 }
 
@@ -268,6 +268,7 @@ async function processEventQueue() {
         document.getElementById('intro-body').classList.remove('streaming');
         document.getElementById('intro-body').contentEditable = 'true';
         document.getElementById('generate-btn').disabled = false;
+        document.getElementById('generate-btn').textContent = 'Generate introduction';
         // Show Claude Code promo
         document.getElementById('skill-promo')?.classList.remove('hidden');
         lastResult = {
@@ -324,6 +325,13 @@ async function processSSE(body) {
 // --- Generate ---
 async function generate() {
   syncStateFromDOM();
+
+  // Validate name before generating
+  if (!state.yourName.trim()) {
+    shakeField('your-name');
+    return;
+  }
+
   goToStep(5);
 
   // Reset output
@@ -346,6 +354,7 @@ async function generate() {
 
   const generateBtn = document.getElementById('generate-btn');
   generateBtn.disabled = true;
+  generateBtn.textContent = 'Generating...';
 
   try {
     const body = {
@@ -366,9 +375,6 @@ async function generate() {
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      if (res.status === 429) {
-        throw new Error('Daily limit reached (5 intros per day). Come back tomorrow!');
-      }
       throw new Error(err.error || `Server error: ${res.status}`);
     }
 
@@ -378,6 +384,7 @@ async function generate() {
     // Re-enable on error
     introBody.classList.remove('streaming');
     generateBtn.disabled = false;
+    generateBtn.textContent = 'Generate introduction';
   }
 }
 
@@ -518,7 +525,7 @@ function wireEvents() {
     const body = document.getElementById('intro-body').innerText;
     const emails = [state.emailA, state.emailB].filter(e => e.trim());
     const to = emails.join(',');
-    window.location.href = `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.location.assign(`mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
   });
 
   document.getElementById('regen-btn').addEventListener('click', () => generate());
@@ -562,6 +569,15 @@ function wireEvents() {
 function init() {
   restoreDOM();
   wireEvents();
+
+  // Detect platform for keyboard hint
+  const isMac = navigator.platform.toUpperCase().includes('MAC');
+  if (!isMac) {
+    document.querySelectorAll('.kbd-hint').forEach(el => {
+      el.textContent = 'Ctrl+Enter';
+    });
+  }
+
   // Always start at hero screen on load (data is preserved in localStorage)
   goToStep(0);
 }

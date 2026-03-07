@@ -3,7 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Introductor</title>
+  <title>Introductor — Warm email intros in seconds</title>
+  <meta name="description" content="Craft warm, personalized email introductions in seconds. Tell us about two people and why they should meet — we research them and write a ready-to-send intro email.">
+  <meta property="og:title" content="Introductor">
+  <meta property="og:description" content="Tell us about two people. We research them and write a ready-to-send intro email.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://introductor.vercel.app">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✉️</text></svg>">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -26,12 +32,12 @@
 
         <!-- Step 1: Person A -->
         <div class="step" data-step="1">
-          <label class="step-label">Who's the first person?</label>
+          <label class="step-label" for="person-a">Who's the first person?</label>
           <textarea id="person-a" rows="4" placeholder="Name, role, company, and any context.&#10;&#10;e.g. Sarah Chen, CTO at TalentAI, building AI hiring tools, raised $2M seed"></textarea>
           <div class="step-nav">
             <span></span>
             <div class="step-nav-right">
-              <span class="step-hint">Cmd+Enter</span>
+              <span class="step-hint kbd-hint">Cmd+Enter</span>
               <button class="btn-next" data-next="2">Next &rarr;</button>
             </div>
           </div>
@@ -42,12 +48,12 @@
           <div class="step-top">
             <button class="btn-back" data-back="1">&larr; Back</button>
           </div>
-          <label class="step-label">And who should they meet?</label>
+          <label class="step-label" for="person-b">And who should they meet?</label>
           <textarea id="person-b" rows="4" placeholder="Name, role, company, and any context.&#10;&#10;e.g. Mike Park, VP Engineering at Acme, hiring 20 engineers this quarter"></textarea>
           <div class="step-nav">
             <span></span>
             <div class="step-nav-right">
-              <span class="step-hint">Cmd+Enter</span>
+              <span class="step-hint kbd-hint">Cmd+Enter</span>
               <button class="btn-next" data-next="3">Next &rarr;</button>
             </div>
           </div>
@@ -58,12 +64,12 @@
           <div class="step-top">
             <button class="btn-back" data-back="2">&larr; Back</button>
           </div>
-          <label class="step-label" id="why-label">Why connect them?</label>
+          <label class="step-label" id="why-label" for="why">Why connect them?</label>
           <textarea id="why" rows="3" placeholder="e.g. Sarah's tool could help Mike's hiring pipeline. They're both in Montreal tech."></textarea>
           <div class="step-nav">
             <span></span>
             <div class="step-nav-right">
-              <span class="step-hint">Cmd+Enter</span>
+              <span class="step-hint kbd-hint">Cmd+Enter</span>
               <button class="btn-next" data-next="4">Next &rarr;</button>
             </div>
           </div>
@@ -96,7 +102,7 @@
 
             <div class="option-group">
               <span class="option-label">Your name</span>
-              <input type="text" id="your-name" placeholder="First name">
+              <input type="text" id="your-name" placeholder="First name" aria-label="Your first name">
             </div>
           </div>
 
@@ -104,15 +110,15 @@
             <div class="option-group">
               <span class="option-label">Their emails <span class="optional-tag">optional</span></span>
               <div class="email-row">
-                <input type="email" id="email-a" placeholder="person A" class="email-input">
-                <input type="email" id="email-b" placeholder="person B" class="email-input">
+                <input type="email" id="email-a" placeholder="person A" class="email-input" aria-label="Email for person A">
+                <input type="email" id="email-b" placeholder="person B" class="email-input" aria-label="Email for person B">
               </div>
             </div>
           </div>
 
           <div class="option-group expandable">
             <button class="expand-toggle" id="personal-toggle">+ Add personal touch</button>
-            <textarea id="personal" rows="2" class="hidden" placeholder="An anecdote, shared experience, how you know them..."></textarea>
+            <textarea id="personal" rows="2" class="hidden" placeholder="An anecdote, shared experience, how you know them..." aria-label="Personal touch"></textarea>
           </div>
 
           <button class="btn-generate" id="generate-btn">Generate introduction</button>
@@ -155,7 +161,7 @@
     </div>
 
     <footer>
-      <p>No data stored. Everything stays in your browser.</p>
+      <p>Introductor &mdash; No data stored. Everything stays in your browser.</p>
     </footer>
   </div>
   <script src="app.js"></script>
