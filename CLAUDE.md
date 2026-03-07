@@ -14,8 +14,9 @@ Outil AI pour générer des introductions chaleureuses par email. Deux surfaces:
 - `skills/introductor/SKILL.md` - workflow complet en 5 étapes (collecte → recherche → questions → génération → draft)
 - `skills/introductor/references/best-practices.md` - research compilée
 - `skills/introductor/references/templates.md` - 5 templates + patterns
-- `commands/intro.md` - slash command /intro
+- `commands/intro.md` - slash command `/intro` (seul point d'entrée, symlinké dans `~/.claude/commands/`)
 - `.claude-plugin/plugin.json` - metadata plugin
+- Auto-trigger skill retiré (session 6) - `/intro` est explicite, pas besoin d'auto-détection
 
 ### Web app
 - `web/index.html` + `web/style.css` + `web/app.js`
@@ -68,39 +69,95 @@ Outil AI pour générer des introductions chaleureuses par email. Deux surfaces:
 - Compte Brave Search API créé et vérifié (francois@saaspasse.com)
 - Testé end-to-end: wizard + Sonnet OK, search skippé gracefully (pas de BRAVE_API_KEY encore)
 
-## Ce qui reste à faire
+## Ce qui est fait (session 5 - 2026-03-04)
 
-### P0 - Immédiat
-1. Créer la clé API Brave dans le dashboard (https://api-dashboard.search.brave.com)
-2. Ajouter `BRAVE_API_KEY` dans Vercel env vars (Settings → Environment Variables)
-3. Tester avec search actif (voir les animations research phase en live)
-4. Choisir le thème final (theme-final.css pas encore par défaut, accessible via `?theme=final`)
+### Brave Search live + UX polish + hero screen
+- Clé API Brave créée (`BSAF-i_meZg2EpwGgYpgUydtN-jF9ad`, plan $5 free/mois)
+- `BRAVE_API_KEY` ajoutée dans Vercel env vars
+- Thème fusion appliqué comme défaut, theme switcher retiré
+- Testé end-to-end avec vraies personnes (Derek Morin / Émile David)
+- Fix: boutons output qui overlappaient le texte (flex layout fix)
+- Écran hero (step 0) avec value prop + "Get started" + Enter
+- Navigation flèches haut/bas entre steps
+- Reset au step 0 au refresh (données préservées en localStorage)
+- Research phase: délais séquentiels (800ms/1000ms/600ms), box stylée, animations
+- Champs email A/B optionnels au step 4, utilisés dans mailto:
+- Subject line word-break fix
+- Streaming typewriter (2 chars/18ms) + auto-scroll
+- Promo Claude Code skill après génération (fade-in)
 
-### P1 - Skill + web app
+## Ce qui est fait (session 6 - 2026-03-07)
+
+### Audit + 13 fixes
+- Audit complet code + UX/UI (browser automatisé)
+- overflow: hidden → overflow-y: auto sur .step-output
+- CORS restreint à introductor.ai + introductor.vercel.app + localhost:3000
+- Rate limit in-memory supprimé (inutile sur Edge stateless, CORS protège partiellement)
+- 9 fichiers CSS dead supprimés (-1915 lignes)
+- Arrow keys ne mangent plus le curseur dans les champs input
+- Bouton Generate affiche "Generating..." pendant le travail
+- README mis à jour (plus de BYOK)
+- Meta tags ajoutés (title, description, OG, emoji favicon)
+- Modèle mis à jour vers claude-sonnet-4-5-latest
+- window.location.assign() pour mailto
+- Ctrl+Enter sur Windows, Cmd+Enter sur Mac
+- for attributes sur labels + aria-label sur inputs
+- Empty name → validation avec shake, bloque la génération
+
+### DNS + domaine custom
+- DNS introductor.ai configuré sur iwantmyname (A @ → 76.76.21.21, CNAME www → cname.vercel-dns.com)
+- Site live sur https://introductor.ai
+
+## Vision produit
+
+### Pourquoi
+- Plus-value pour les SaaSpals (subscribers communauté SaaSpasse) et l'audience SaaSpasse
+- Apprendre à builder un produit AI-native (learning vehicle)
+- Utilisation perso quand Frank en a besoin
+- Contenu SaaSpasse (podcast, infolettre, LinkedIn) autour du build en public
+
+### Roadmap
+
+#### P0 - Rate limit fonctionnel
+- Implémenter un vrai rate limit (Vercel KV ou Upstash Redis) pour remplacer l'in-memory supprimé
+- Le CORS restreint aide mais ne suffit pas
+
+#### P1 - Voice input
+- Pouvoir parler à Introductor au lieu de taper (Web Speech API ou Whisper)
+- Décrire vocalement l'intro voulue, l'outil remplit les champs
+
+
+#### P1.5 - URL dynamique d'intro
+- Page branded introductor.ai/i/abc123 envoyée aux deux parties
+- Message custom animé avec contexte de l'intro
+- Ajoute du "wow" vs un email copié-collé
+- Nécessite un storage minimal (Vercel KV ou similar)
+#### P2 - Skill + web app
 1. Tester `/intro` end-to-end dans une nouvelle session Claude Code
 2. Config `introductor.config.json` (email client, sources, ton, langue)
 3. Ajouter search Calendar/Missive/Notion dans le workflow du skill
 
-### P2 - Polish web app
+#### P3 - Polish web app
 1. Exemples pré-remplis (bouton "Try an example")
-2. Compteur de mots live sur le output
-3. Preview email avec formatting HTML
+2. Analytics de base (combien d'intros générées)
+3. Footer pourrait mentionner "Introductor" au lieu de juste "No data stored"
 
-### P3 - Distribution
+#### P4 - Distribution
 1. Landing page / Product Hunt
-2. Custom GPT pour ChatGPT users
+2. Contenu SaaSpasse: "builder un produit AI en X jours avec Claude Code"
 
 ## Stack technique
 - Skill: markdown (SKILL.md) + slash command
 - Web app: HTML/CSS/JS vanilla, zéro framework, zéro DB
 - Backend: Vercel Edge Function (`api/generate.js`) → Brave Search + Anthropic Sonnet 4.5
-- Modèle: `claude-sonnet-4-5-20250929` (max_tokens: 1024, ~0.01$/intro)
+- Modèle: `claude-sonnet-4-5-latest` (max_tokens: 1024, ~0.01$/intro)
 - Search: Brave Search API (linkedin enrichment, top 3 snippets, 300 chars summary)
-- Rate limit: 5/jour par IP (in-memory Map)
-- Deploy: Vercel (https://introductor.vercel.app), CI/CD Git auto, root dir `web/`
+- Rate limit: aucun fonctionnel (in-memory supprimé, CORS restreint aux domaines autorisés)
+- Deploy: Vercel (https://introductor.vercel.app + https://introductor.ai), CI/CD Git auto, root dir `web/`
+- Domaine: introductor.ai (iwantmyname, DNS A + CNAME vers Vercel)
 - Repo: https://github.com/SaaSpasse/introductor
-- Env vars Vercel: `ANTHROPIC_API_KEY`, `BRAVE_API_KEY` (à ajouter)
-- Compte Brave: francois@saaspasse.com (vérifié, clé API à créer)
+- Env vars Vercel: `ANTHROPIC_API_KEY`, `BRAVE_API_KEY`
+- Compte Brave: francois@saaspasse.com, plan Search ($5 free credits/mois), usage limit $5
 
 ## Contacts POC
 - Derek Morin: derek@pochesetfils.com (Poche et Fils, C'est beau, ex-Tabarnapp)

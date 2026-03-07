@@ -1,5 +1,38 @@
 export const config = { runtime: 'edge' };
 
+// Rate limit: 5 requests per day per IP via Upstash Redis REST API
+const RATE_LIMIT = 5;
+const RATE_LIMIT_WINDOW = 86400; // 24h in seconds
+
+async function checkRateLimit(ip) {
+  const url = process.env.UPSTASH_REDIS_KV_REST_API_URL;
+  const token = process.env.UPSTASH_REDIS_KV_REST_API_TOKEN;
+  if (!url || !token) return { allowed: true }; // skip if not configured
+
+  const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+  const key = `ratelimit:${ip}:${today}`;
+
+  try {
+    // INCR the key (creates it with value 1 if it doesn't exist)
+    const res = await fetch(`${url}/incr/${encodeURIComponent(key)}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await res.json();
+    const count = data.result;
+
+    // Set TTL on first request (when count is 1)
+    if (count === 1) {
+      await fetch(`${url}/expire/${encodeURIComponent(key)}/${RATE_LIMIT_WINDOW}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+    }
+
+    return { allowed: count <= RATE_LIMIT, remaining: Math.max(0, RATE_LIMIT - count) };
+  } catch {
+    return { allowed: true }; // fail open
+  }
+}
+
 const ALLOWED_ORIGINS = [
   'https://introductor.vercel.app',
   'https://introductor.ai',
@@ -107,6 +140,23 @@ export default async function handler(request) {
   }
 
   try {
+    // Rate limit check
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+    const { allowed, remaining } = await checkRateLimit(ip);
+    if (!allowed) {
+      return new Response(
+        JSON.stringify({ error: 'Rate limit exceeded. Try again tomorrow.' }),
+        {
+          status: 429,
+          headers: {
+            'Content-Type': 'application/json',
+            'X-RateLimit-Remaining': '0',
+            ...corsHeaders,
+          },
+        }
+      );
+    }
+
     const { personA, personB, why, tone, language, yourName, personal } = await request.json();
 
     if (!personA || !personB || !why) {
