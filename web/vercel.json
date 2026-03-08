@@ -5,5 +5,8 @@
     "api/generate.js": {
       "maxDuration": 30
     }
-  }
+  },
+  "rewrites": [
+    { "source": "/i/:id", "destination": "/api/intro/:id" }
+  ]
 }
