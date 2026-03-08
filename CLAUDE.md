@@ -72,7 +72,7 @@ Outil AI pour générer des introductions chaleureuses par email. Deux surfaces:
 ## Ce qui est fait (session 5 - 2026-03-04)
 
 ### Brave Search live + UX polish + hero screen
-- Clé API Brave créée (`BSAF-i_meZg2EpwGgYpgUydtN-jF9ad`, plan $5 free/mois)
+- Clé API Brave créée (plan $5 free/mois) — clé dans Vercel env vars uniquement
 - `BRAVE_API_KEY` ajoutée dans Vercel env vars
 - Thème fusion appliqué comme défaut, theme switcher retiré
 - Testé end-to-end avec vraies personnes (Derek Morin / Émile David)
@@ -108,6 +108,44 @@ Outil AI pour générer des introductions chaleureuses par email. Deux surfaces:
 - DNS introductor.ai configuré sur iwantmyname (A @ → 76.76.21.21, CNAME www → cname.vercel-dns.com)
 - Site live sur https://introductor.ai
 
+## Ce qui est fait (session 7+8 - 2026-03-07)
+
+### P0 - Rate limit Upstash Redis
+- Upstash Redis via Vercel marketplace (DB: introductor-ratelimit, plan Free 500K cmd/mois)
+- 5 req/jour par IP, sliding window INCR + EXPIRE 24h
+- Fail open si Redis indisponible
+
+### P1 - Voice input (Web Speech API)
+- Bouton mic SVG en bas-droite des textareas (steps 1-3)
+- Web Speech API avec continuous + interimResults
+- Pulse accent pendant écoute, langue auto (en-US/fr-CA selon state)
+- Feature detection: caché si navigateur ne supporte pas
+
+### P1.5 - Share as link
+- POST /api/share → ID court 7 chars, stocké Redis TTL 30 jours
+- GET /i/:id → page HTML branded standalone (rewrite Vercel)
+- Bouton "Share as link" dans output-actions
+- Page 404 si lien expiré
+
+### P2 - Skill enrichi
+- SKILL.md: instructions Calendar search, Missive/Gmail history, Notion
+- `introductor.config.json` avec defaults (tone, language, email client, search sources)
+
+### P3 - Polish
+- "Try an example" sur hero → pré-remplit exemple SaaS/tech → step 4
+- Compteur Redis `stats:total_intros` dans generate.js
+- GET /api/stats + footer dynamique
+
+### Fix model ID
+- `claude-sonnet-4-5-latest` → `claude-sonnet-4-5-20250929` (le latest alias n'existe pas sur l'API)
+
+### Bugs trouvés (pas encore fixés)
+- Transitions entre steps glitchées (steps se chevauchent)
+- "Open in email" (mailto:) ne fonctionne pas
+- "Share as link" bouton UI échoue côté client (API fonctionne)
+- Footer compteur pas visible (0 → omis?)
+- UX du share link à repenser: actuellement c'est juste un email dans une page web. Pistes: view tracking à la Loom, connection card personnalisée, notifications
+
 ## Vision produit
 
 ### Pourquoi
@@ -118,31 +156,22 @@ Outil AI pour générer des introductions chaleureuses par email. Deux surfaces:
 
 ### Roadmap
 
-#### P0 - Rate limit fonctionnel - DONE (session 7 - 2026-03-07)
-- Upstash Redis via Vercel marketplace (DB: introductor-ratelimit, plan Free 500K cmd/mois)
-- 5 req/jour par IP, sliding window INCR + EXPIRE 24h
-- Fail open si Redis indisponible
-- Env vars: UPSTASH_REDIS_KV_REST_API_URL, UPSTASH_REDIS_KV_REST_API_TOKEN
+#### P0 - Rate limit - DONE (session 7)
+#### P1 - Voice input - DONE (session 8) - bugs à fixer
+#### P1.5 - Share as link - DONE (session 8) - UX à repenser
+#### P2 - Skill enrichi - DONE (session 8)
+#### P3 - Polish - DONE (session 8) - bugs à fixer
 
-#### P1 - Voice input
-- Pouvoir parler à Introductor au lieu de taper (Web Speech API ou Whisper)
-- Décrire vocalement l'intro voulue, l'outil remplit les champs
+#### P-next - Fix bugs session 8
+- Transitions entre steps
+- Open in email
+- Share link bouton UI
+- Footer compteur
 
-
-#### P1.5 - URL dynamique d'intro
-- Page branded introductor.ai/i/abc123 envoyée aux deux parties
-- Message custom animé avec contexte de l'intro
-- Ajoute du "wow" vs un email copié-collé
-- Nécessite un storage minimal (Vercel KV ou similar)
-#### P2 - Skill + web app
-1. Tester `/intro` end-to-end dans une nouvelle session Claude Code
-2. Config `introductor.config.json` (email client, sources, ton, langue)
-3. Ajouter search Calendar/Missive/Notion dans le workflow du skill
-
-#### P3 - Polish web app
-1. Exemples pré-remplis (bouton "Try an example")
-2. Analytics de base (combien d'intros générées)
-3. Footer pourrait mentionner "Introductor" au lieu de juste "No data stored"
+#### P-next - Repenser Share link UX
+- View tracking à la Loom (qui a ouvert le lien)
+- Connection card personnalisée par destinataire
+- Notification à l'introducteur
 
 #### P4 - Distribution
 1. Landing page / Product Hunt
