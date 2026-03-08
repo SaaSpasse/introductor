@@ -1,0 +1,29 @@
+{
+  "defaults": {
+    "tone": "warm",
+    "language": "en",
+    "emailClient": "missive",
+    "fromEmail": "francois@saaspasse.com",
+    "fromName": "Frank"
+  },
+  "research": {
+    "web": true,
+    "calendar": true,
+    "email": true,
+    "notion": false
+  },
+  "emailClients": {
+    "missive": {
+      "tool": "create_draft",
+      "format": "html"
+    },
+    "gmail": {
+      "tool": "draft_email",
+      "format": "html"
+    },
+    "text": {
+      "tool": null,
+      "format": "plaintext"
+    }
+  }
+}

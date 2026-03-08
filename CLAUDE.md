@@ -118,9 +118,11 @@ Outil AI pour générer des introductions chaleureuses par email. Deux surfaces:
 
 ### Roadmap
 
-#### P0 - Rate limit fonctionnel
-- Implémenter un vrai rate limit (Vercel KV ou Upstash Redis) pour remplacer l'in-memory supprimé
-- Le CORS restreint aide mais ne suffit pas
+#### P0 - Rate limit fonctionnel - DONE (session 7 - 2026-03-07)
+- Upstash Redis via Vercel marketplace (DB: introductor-ratelimit, plan Free 500K cmd/mois)
+- 5 req/jour par IP, sliding window INCR + EXPIRE 24h
+- Fail open si Redis indisponible
+- Env vars: UPSTASH_REDIS_KV_REST_API_URL, UPSTASH_REDIS_KV_REST_API_TOKEN
 
 #### P1 - Voice input
 - Pouvoir parler à Introductor au lieu de taper (Web Speech API ou Whisper)
@@ -152,7 +154,7 @@ Outil AI pour générer des introductions chaleureuses par email. Deux surfaces:
 - Backend: Vercel Edge Function (`api/generate.js`) → Brave Search + Anthropic Sonnet 4.5
 - Modèle: `claude-sonnet-4-5-latest` (max_tokens: 1024, ~0.01$/intro)
 - Search: Brave Search API (linkedin enrichment, top 3 snippets, 300 chars summary)
-- Rate limit: aucun fonctionnel (in-memory supprimé, CORS restreint aux domaines autorisés)
+- Rate limit: Upstash Redis (5 req/jour par IP, plan Free, fail open)
 - Deploy: Vercel (https://introductor.vercel.app + https://introductor.ai), CI/CD Git auto, root dir `web/`
 - Domaine: introductor.ai (iwantmyname, DNS A + CNAME vers Vercel)
 - Repo: https://github.com/SaaSpasse/introductor

@@ -50,7 +50,7 @@ If the user provides all this upfront, skip to Step 2.
 
 ### Step 2 - Research
 
-For each person, gather context from available sources. Search in parallel when possible:
+For each person, gather context from available sources. **Search in parallel when possible** (use Agent teams for multi-source research):
 
 **Web research (always available):**
 - Company website
@@ -58,11 +58,19 @@ For each person, gather context from available sources. Search in parallel when 
 - Recent news, funding, or press
 - Notable projects or achievements
 
-**MCP sources (if available - check what MCPs the user has):**
-- Email history (Missive `list_conversations` or Gmail `search_emails`)
-- Calendar events with the person (`search-events`)
-- Podcast episodes (Notion database queries)
-- CRM or contact databases
+**Calendar search (if Google Calendar MCP available):**
+- Use `search-events` to find past meetings with each person
+- Look for event titles, descriptions, and dates — this reveals how the user knows them
+- Check upcoming events too — relevant for timing the intro
+
+**Email history (if Missive or Gmail MCP available):**
+- Missive: `search_conversations_by_label_name` or `list_conversations` to find past exchanges
+- Gmail: `search_emails` with person's name or email
+- Look for: last interaction date, topics discussed, relationship warmth level
+
+**Notion (if MCP available):**
+- Podcast episodes (search for person's name in episode database)
+- Contact databases, CRM entries
 
 **What to look for:**
 - How does the user know each person? (past emails, meetings, podcast appearances)
