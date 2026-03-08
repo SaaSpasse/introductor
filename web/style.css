@@ -35,6 +35,14 @@ textarea:focus, input:focus { outline: none; border-color: var(--accent); box-sh
 textarea { resize: vertical; flex-shrink: 0; }
 textarea::placeholder, input::placeholder { color: var(--text-secondary); opacity: 0.6; }
 
+/* Voice input */
+.textarea-wrap { position: relative; }
+.textarea-wrap textarea { padding-right: 44px; }
+.btn-mic { position: absolute; right: 8px; bottom: 8px; width: 32px; height: 32px; border: none; border-radius: 50%; background: var(--surface); color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+.btn-mic:hover { background: var(--border); color: var(--text); }
+.btn-mic.listening { background: var(--accent); color: #fff; animation: micPulse 1.5s ease infinite; }
+@keyframes micPulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(181, 112, 106, 0.4); } 50% { box-shadow: 0 0 0 8px rgba(181, 112, 106, 0); } }
+
 .step-nav { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; flex-shrink: 0; }
 .step-nav-right { display: flex; align-items: center; gap: 12px; }
 .step-hint { font-size: 0.7rem; color: var(--text-secondary); }
@@ -107,6 +115,8 @@ textarea::placeholder, input::placeholder { color: var(--text-secondary); opacit
 .hero-subtitle { font-size: 1.1rem; color: var(--text); margin-bottom: 12px; line-height: 1.5; }
 .hero-description { font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 32px; line-height: 1.6; }
 .hero-content .btn-generate { max-width: 280px; margin: 0 auto; }
+.btn-example { display: block; margin: 10px auto 0; background: none; border: none; color: var(--accent); font-family: var(--font-body); font-size: 0.85rem; cursor: pointer; padding: 6px 12px; transition: opacity 0.2s; }
+.btn-example:hover { opacity: 0.7; }
 .nav-hint { display: block; margin-top: 12px; font-size: 0.7rem; color: var(--text-secondary); }
 
 footer { text-align: center; padding: 16px 0; color: var(--text-secondary); font-size: 0.7rem; flex-shrink: 0; }

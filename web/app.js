@@ -435,8 +435,105 @@ function setActivePill(groupId, value) {
   });
 }
 
+// --- Voice input (Web Speech API) ---
+let activeRecognition = null;
+let activeTarget = null;
+
+function getSpeechLang() {
+  return state.language === 'fr' ? 'fr-CA' : 'en-US';
+}
+
+function hasSpeechRecognition() {
+  return !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+}
+
+function toggleVoice(btn) {
+  const targetId = btn.dataset.target;
+  const textarea = document.getElementById(targetId);
+
+  // If already listening on this target, stop
+  if (activeRecognition && activeTarget === targetId) {
+    activeRecognition.stop();
+    return;
+  }
+
+  // If listening on another target, stop that first
+  if (activeRecognition) {
+    activeRecognition.stop();
+  }
+
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const recognition = new SpeechRecognition();
+  recognition.lang = getSpeechLang();
+  recognition.continuous = true;
+  recognition.interimResults = true;
+
+  let finalTranscript = textarea.value;
+  const startLen = finalTranscript.length;
+
+  recognition.onstart = () => {
+    btn.classList.add('listening');
+    activeRecognition = recognition;
+    activeTarget = targetId;
+  };
+
+  recognition.onresult = (e) => {
+    let interim = '';
+    let newFinal = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) {
+        newFinal += e.results[i][0].transcript;
+      } else {
+        interim += e.results[i][0].transcript;
+      }
+    }
+    if (newFinal) {
+      const separator = finalTranscript.length > 0 && !finalTranscript.endsWith(' ') ? ' ' : '';
+      finalTranscript += separator + newFinal;
+    }
+    textarea.value = finalTranscript + (interim ? ' ' + interim : '');
+    // Sync state
+    const key = targetId.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+    state[key] = textarea.value;
+    saveState();
+  };
+
+  recognition.onend = () => {
+    btn.classList.remove('listening');
+    // Finalize: set value to finalTranscript (drop interim)
+    textarea.value = finalTranscript;
+    const key = targetId.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+    state[key] = textarea.value;
+    saveState();
+    if (activeTarget === targetId) {
+      activeRecognition = null;
+      activeTarget = null;
+    }
+  };
+
+  recognition.onerror = () => {
+    btn.classList.remove('listening');
+    activeRecognition = null;
+    activeTarget = null;
+  };
+
+  recognition.start();
+}
+
 // --- Event wiring ---
 function wireEvents() {
+  // Voice input buttons (hide if no Speech API)
+  document.querySelectorAll('.btn-mic').forEach(btn => {
+    if (!hasSpeechRecognition()) {
+      btn.style.display = 'none';
+      // Remove right padding on textarea
+      const wrap = btn.closest('.textarea-wrap');
+      if (wrap) wrap.querySelector('textarea').style.paddingRight = '16px';
+    } else {
+      btn.addEventListener('click', () => toggleVoice(btn));
+    }
+  });
+
   // Next buttons
   document.querySelectorAll('.btn-next').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -520,6 +617,33 @@ function wireEvents() {
     });
   });
 
+  document.getElementById('share-btn').addEventListener('click', async () => {
+    const subject = document.getElementById('subject-text').textContent;
+    const body = document.getElementById('intro-body').innerText;
+    const btn = document.getElementById('share-btn');
+    if (!subject || !body) return;
+
+    btn.textContent = 'Sharing...';
+    btn.disabled = true;
+
+    try {
+      const res = await fetch('/api/share', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subject, body, fromName: state.yourName || 'Someone' })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to share');
+
+      await navigator.clipboard.writeText(data.url);
+      btn.textContent = 'Link copied!';
+      setTimeout(() => { btn.textContent = 'Share as link'; btn.disabled = false; }, 3000);
+    } catch (err) {
+      btn.textContent = 'Share failed';
+      setTimeout(() => { btn.textContent = 'Share as link'; btn.disabled = false; }, 2000);
+    }
+  });
+
   document.getElementById('email-btn').addEventListener('click', () => {
     const subject = document.getElementById('subject-text').textContent;
     const body = document.getElementById('intro-body').innerText;
@@ -540,6 +664,19 @@ function wireEvents() {
 
   // Hero start button
   document.getElementById('hero-start').addEventListener('click', () => goToStep(1));
+
+  // Try an example
+  document.getElementById('hero-example').addEventListener('click', () => {
+    state.personA = 'Sarah Chen, CTO at TalentAI, building AI-powered hiring tools. Raised $2M seed. Based in Montreal.';
+    state.personB = 'Mike Park, VP Engineering at Acme Corp, hiring 20 engineers this quarter. Previously at Shopify.';
+    state.why = "Sarah's AI hiring tool could help Mike fill his engineering roles faster. They're both in the Montreal tech scene and both spoke at ConFoo last year.";
+    state.tone = 'warm';
+    state.language = 'en';
+    state.personal = '';
+    saveState();
+    restoreDOM();
+    goToStep(4);
+  });
 
   // Arrow key navigation
   document.addEventListener('keydown', (e) => {
@@ -580,6 +717,13 @@ function init() {
 
   // Always start at hero screen on load (data is preserved in localStorage)
   goToStep(0);
+
+  // Fetch stats for footer
+  fetch('/api/stats').then(r => r.json()).then(data => {
+    if (data.total > 0) {
+      document.getElementById('stats-count').textContent = `${data.total} introductions crafted · `;
+    }
+  }).catch(() => {});
 }
 
 document.addEventListener('DOMContentLoaded', init);
