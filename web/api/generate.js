@@ -184,6 +184,17 @@ export default async function handler(request) {
       await writer.write(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
     };
 
+    // Increment total intros counter (fire and forget)
+    {
+      const redisUrl = process.env.UPSTASH_REDIS_KV_REST_API_URL;
+      const redisToken = process.env.UPSTASH_REDIS_KV_REST_API_TOKEN;
+      if (redisUrl && redisToken) {
+        fetch(`${redisUrl}/incr/stats:total_intros`, {
+          headers: { Authorization: `Bearer ${redisToken}` },
+        }).catch(() => {});
+      }
+    }
+
     // Start the async pipeline
     (async () => {
       try {
