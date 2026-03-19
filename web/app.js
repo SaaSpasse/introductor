@@ -24,7 +24,8 @@ function loadState() {
 }
 
 function saveState() {
-  localStorage.setItem(STATE_KEY, JSON.stringify(state));
+  const { emailA, emailB, ...persistable } = state;
+  localStorage.setItem(STATE_KEY, JSON.stringify(persistable));
 }
 
 let state = loadState();
@@ -51,50 +52,56 @@ function updateWhyLabel() {
 }
 
 // --- Wizard navigation ---
+function measureAndLayout() {
+  const viewport = document.querySelector('.wizard-viewport');
+  if (!viewport) return 0;
+  const h = viewport.offsetHeight;
+  document.querySelectorAll('.step').forEach(step => {
+    step.style.height = h + 'px';
+    step.style.minHeight = h + 'px';
+  });
+  return h;
+}
+
 function goToStep(n) {
   if (n < 0 || n > 5) return;
   state.currentStep = n;
   saveState();
 
+  const h = measureAndLayout();
   const track = document.getElementById('wizard-track');
-  const stepHeight = document.querySelector('.step').offsetHeight;
-  track.style.transform = `translateY(-${n * stepHeight}px)`;
+  track.style.transform = `translateY(-${n * h}px)`;
 
-  // Progress
   const progress = document.getElementById('progress');
   if (n >= 1 && n <= 4) {
     progress.textContent = `${n} / 4`;
-    progress.classList.remove('hidden');
+    progress.style.visibility = 'visible';
   } else {
-    progress.classList.add('hidden');
+    progress.style.visibility = 'hidden';
   }
 
-  // Answer piping on step 3
   if (n === 3) updateWhyLabel();
 
-  // Auto-focus
   const step = document.querySelector(`.step[data-step="${n}"]`);
   if (step) {
     const focusable = step.querySelector('textarea, input[type="text"]');
-    if (focusable) setTimeout(() => focusable.focus(), 300);
+    if (focusable) setTimeout(() => focusable.focus(), 400);
   }
 }
 
-// Recalculate on resize
 function recalcSteps() {
-  const stepHeight = document.querySelector('.step')?.offsetHeight;
-  if (!stepHeight) return;
-  document.querySelectorAll('.step').forEach(s => {
-    s.style.height = `${stepHeight}px`;
-  });
+  const h = measureAndLayout();
   const track = document.getElementById('wizard-track');
-  track.style.transform = `translateY(-${state.currentStep * stepHeight}px)`;
+  if (track) {
+    track.style.transition = 'none';
+    track.style.transform = `translateY(-${state.currentStep * h}px)`;
+    requestAnimationFrame(() => { track.style.transition = ''; });
+  }
 }
 
 // --- Arrow key / Enter navigation ---
 function canNavigateWithKeys() {
   const active = document.activeElement;
-  // Don't navigate if typing in a textarea, input, or contenteditable
   if (active && (active.tagName === 'TEXTAREA' || active.tagName === 'INPUT' || active.isContentEditable)) return false;
   return true;
 }
@@ -126,10 +133,10 @@ function shakeField(id) {
   const el = document.getElementById(id);
   el.classList.add('shake');
   el.focus();
-  setTimeout(() => el.classList.remove('shake'), 500);
+  setTimeout(() => el.classList.remove('shake'), 400);
 }
 
-// --- Research phase UI (queued with delays for polish) ---
+// --- Research phase UI ---
 let eventQueue = [];
 let processingQueue = false;
 
@@ -139,7 +146,7 @@ function resetResearchPhase() {
   researchPhase.classList.add('hidden');
   researchPhase.classList.remove('fade-out');
   const steps = researchPhase.querySelector('.research-steps');
-  if (steps) steps.innerHTML = '';
+  if (steps) steps.textContent = '';
   eventQueue = [];
   processingQueue = false;
 }
@@ -153,64 +160,89 @@ function delay(ms) {
   return new Promise(r => setTimeout(r, ms));
 }
 
+function escapeText(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.textContent;
+}
+
+function createResearchStep(className, personAttr, labelText, detailText) {
+  const div = document.createElement('div');
+  div.className = 'research-step ' + className;
+  if (personAttr) div.dataset.person = personAttr;
+
+  const dot = document.createElement('div');
+  dot.className = 'research-dot';
+  div.appendChild(dot);
+
+  const content = document.createElement('div');
+  content.className = 'research-content';
+
+  const label = document.createElement('div');
+  label.className = 'research-label';
+  label.textContent = labelText;
+  content.appendChild(label);
+
+  if (detailText) {
+    const detail = document.createElement('div');
+    detail.className = 'research-detail';
+    detail.textContent = detailText;
+    content.appendChild(detail);
+  }
+
+  div.appendChild(content);
+  return div;
+}
+
 function addSearchStart(person) {
   showResearchPhase();
   const steps = document.querySelector('#research-phase .research-steps');
   if (!steps) return;
-
-  const div = document.createElement('div');
-  div.className = 'research-step searching';
-  div.dataset.person = person;
-  div.innerHTML = `
-    <div class="research-dot"></div>
-    <div class="research-content">
-      <div class="research-label">Searching for ${person}</div>
-    </div>
-  `;
-  steps.appendChild(div);
+  steps.appendChild(createResearchStep('searching', person, 'Searching for ' + escapeText(person)));
 }
 
 function addSearchResult(person, summary) {
-  const step = document.querySelector(`.research-step[data-person="${person}"]`);
+  const step = document.querySelector(`.research-step[data-person="${CSS.escape(person)}"]`);
   if (!step) return;
-  step.classList.remove('searching');
-  step.classList.add('found');
-  // Truncate summary for display
+  step.className = 'research-step found';
+
+  // Clear and rebuild content safely
+  while (step.firstChild) step.removeChild(step.firstChild);
+
+  const dot = document.createElement('div');
+  dot.className = 'research-dot';
+  step.appendChild(dot);
+
+  const content = document.createElement('div');
+  content.className = 'research-content';
+
+  const label = document.createElement('div');
+  label.className = 'research-label';
+  label.textContent = 'Found context for ' + person;
+  content.appendChild(label);
+
   const short = summary.length > 120 ? summary.slice(0, 120) + '...' : summary;
-  step.innerHTML = `
-    <div class="research-dot"></div>
-    <div class="research-content">
-      <div class="research-label">Found context for ${person}</div>
-      <div class="research-detail">${short}</div>
-    </div>
-  `;
+  const detail = document.createElement('div');
+  detail.className = 'research-detail';
+  detail.textContent = short;
+  content.appendChild(detail);
+
+  step.appendChild(content);
 }
 
 function addWritingStep() {
   const steps = document.querySelector('#research-phase .research-steps');
   if (!steps) return;
-
-  const div = document.createElement('div');
-  div.className = 'research-step writing';
-  div.innerHTML = `
-    <div class="research-dot"></div>
-    <div class="research-content">
-      <div class="research-label">Crafting your introduction</div>
-    </div>
-  `;
-  steps.appendChild(div);
+  steps.appendChild(createResearchStep('writing', null, 'Crafting your introduction'));
 }
 
 function fadeOutResearchPhase() {
   const researchPhase = document.getElementById('research-phase');
   if (!researchPhase) return;
   researchPhase.classList.add('fade-out');
-  setTimeout(() => {
-    researchPhase.classList.add('hidden');
-  }, 600);
+  setTimeout(() => { researchPhase.classList.add('hidden'); }, 500);
 }
 
-// Process queued events with delays for a polished feel
 async function processEventQueue() {
   if (processingQueue) return;
   processingQueue = true;
@@ -239,13 +271,12 @@ async function processEventQueue() {
           firstTextReceived = true;
           await delay(400);
           fadeOutResearchPhase();
-          await delay(600);
+          await delay(500);
           document.getElementById('subject-row').classList.remove('hidden');
           document.getElementById('intro-body').classList.remove('hidden');
           document.getElementById('output-actions').classList.remove('hidden');
           document.getElementById('intro-body').classList.add('streaming');
         }
-        // Typewriter effect: render text in small groups with micro-delays
         {
           const body = document.getElementById('intro-body');
           const chars = event.content;
@@ -263,13 +294,13 @@ async function processEventQueue() {
         break;
 
       case 'done':
-        // Flush any remaining text display
         await delay(100);
         document.getElementById('intro-body').classList.remove('streaming');
         document.getElementById('intro-body').contentEditable = 'true';
+        document.getElementById('intro-body').scrollTop = 0;
+        document.querySelector('.step[data-step="5"]').scrollTop = 0;
         document.getElementById('generate-btn').disabled = false;
         document.getElementById('generate-btn').textContent = 'Generate introduction';
-        // Show Claude Code promo
         document.getElementById('skill-promo')?.classList.remove('hidden');
         lastResult = {
           subject: document.getElementById('subject-text').textContent,
@@ -286,7 +317,6 @@ async function processEventQueue() {
   processingQueue = false;
 }
 
-// --- Event handler for SSE events (queues for delayed display) ---
 function handleEvent(event) {
   eventQueue.push(event);
   processEventQueue();
@@ -315,7 +345,6 @@ async function processSSE(body) {
         const event = JSON.parse(data);
         handleEvent(event);
       } catch {
-        // Skip malformed lines
         continue;
       }
     }
@@ -326,7 +355,6 @@ async function processSSE(body) {
 async function generate() {
   syncStateFromDOM();
 
-  // Validate name before generating
   if (!state.yourName.trim()) {
     shakeField('your-name');
     return;
@@ -334,7 +362,6 @@ async function generate() {
 
   goToStep(5);
 
-  // Reset output
   document.getElementById('subject-text').textContent = '';
   const introBody = document.getElementById('intro-body');
   introBody.textContent = '';
@@ -342,11 +369,9 @@ async function generate() {
   introBody.classList.remove('streaming');
   hideError();
 
-  // Reset research phase
   resetResearchPhase();
   firstTextReceived = false;
 
-  // Hide output elements until first text arrives
   document.getElementById('subject-row').classList.add('hidden');
   introBody.classList.add('hidden');
   document.getElementById('output-actions').classList.add('hidden');
@@ -381,7 +406,6 @@ async function generate() {
     await processSSE(res.body);
   } catch (err) {
     showError(err.message);
-    // Re-enable on error
     introBody.classList.remove('streaming');
     generateBtn.disabled = false;
     generateBtn.textContent = 'Generate introduction';
@@ -419,13 +443,12 @@ function restoreDOM() {
   document.getElementById('email-a').value = state.emailA;
   document.getElementById('email-b').value = state.emailB;
 
-  // Pills
   setActivePill('tone-pills', state.tone);
   setActivePill('lang-pills', state.language);
 
-  // Personal touch
   if (state.personal) {
     document.getElementById('personal').classList.remove('hidden');
+    document.getElementById('personal-toggle').textContent = '- Remove personal touch';
   }
 }
 
@@ -451,16 +474,12 @@ function toggleVoice(btn) {
   const targetId = btn.dataset.target;
   const textarea = document.getElementById(targetId);
 
-  // If already listening on this target, stop
   if (activeRecognition && activeTarget === targetId) {
     activeRecognition.stop();
     return;
   }
 
-  // If listening on another target, stop that first
-  if (activeRecognition) {
-    activeRecognition.stop();
-  }
+  if (activeRecognition) activeRecognition.stop();
 
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   const recognition = new SpeechRecognition();
@@ -469,7 +488,6 @@ function toggleVoice(btn) {
   recognition.interimResults = true;
 
   let finalTranscript = textarea.value;
-  const startLen = finalTranscript.length;
 
   recognition.onstart = () => {
     btn.classList.add('listening');
@@ -492,7 +510,6 @@ function toggleVoice(btn) {
       finalTranscript += separator + newFinal;
     }
     textarea.value = finalTranscript + (interim ? ' ' + interim : '');
-    // Sync state
     const key = targetId.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
     state[key] = textarea.value;
     saveState();
@@ -500,7 +517,6 @@ function toggleVoice(btn) {
 
   recognition.onend = () => {
     btn.classList.remove('listening');
-    // Finalize: set value to finalTranscript (drop interim)
     textarea.value = finalTranscript;
     const key = targetId.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
     state[key] = textarea.value;
@@ -522,11 +538,9 @@ function toggleVoice(btn) {
 
 // --- Event wiring ---
 function wireEvents() {
-  // Voice input buttons (hide if no Speech API)
   document.querySelectorAll('.btn-mic').forEach(btn => {
     if (!hasSpeechRecognition()) {
       btn.style.display = 'none';
-      // Remove right padding on textarea
       const wrap = btn.closest('.textarea-wrap');
       if (wrap) wrap.querySelector('textarea').style.paddingRight = '16px';
     } else {
@@ -534,7 +548,6 @@ function wireEvents() {
     }
   });
 
-  // Next buttons
   document.querySelectorAll('.btn-next').forEach(btn => {
     btn.addEventListener('click', () => {
       const step = parseInt(btn.closest('.step').dataset.step);
@@ -542,12 +555,10 @@ function wireEvents() {
     });
   });
 
-  // Back buttons
   document.querySelectorAll('.btn-back').forEach(btn => {
     btn.addEventListener('click', () => goToStep(parseInt(btn.dataset.back)));
   });
 
-  // Cmd+Enter on textareas
   document.querySelectorAll('.step textarea').forEach(ta => {
     ta.addEventListener('keydown', (e) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
@@ -561,7 +572,6 @@ function wireEvents() {
     });
   });
 
-  // Pill selections
   document.querySelectorAll('.pills').forEach(group => {
     group.addEventListener('click', (e) => {
       const pill = e.target.closest('.pill');
@@ -574,17 +584,14 @@ function wireEvents() {
     });
   });
 
-  // Personal touch expander
   document.getElementById('personal-toggle').addEventListener('click', () => {
     const ta = document.getElementById('personal');
     const isHidden = ta.classList.contains('hidden');
     ta.classList.toggle('hidden');
-    const toggle = document.getElementById('personal-toggle');
-    toggle.textContent = isHidden ? '- Remove personal touch' : '+ Add personal touch';
+    document.getElementById('personal-toggle').textContent = isHidden ? '- Remove personal touch' : '+ Add personal touch';
     if (isHidden) ta.focus();
   });
 
-  // Input sync
   ['person-a', 'person-b', 'why', 'personal', 'your-name', 'email-a', 'email-b'].forEach(id => {
     const el = document.getElementById(id);
     el.addEventListener('input', () => {
@@ -594,10 +601,9 @@ function wireEvents() {
     });
   });
 
-  // Generate
   document.getElementById('generate-btn').addEventListener('click', () => generate());
 
-  // Output actions
+  // --- Output actions ---
   document.getElementById('copy-btn').addEventListener('click', () => {
     const subject = document.getElementById('subject-text').textContent;
     const body = document.getElementById('intro-body').innerText;
@@ -632,13 +638,22 @@ function wireEvents() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ subject, body, fromName: state.yourName || 'Someone' })
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to share');
 
-      await navigator.clipboard.writeText(data.url);
-      btn.textContent = 'Link copied!';
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to share');
+      }
+
+      const data = await res.json();
+      try {
+        await navigator.clipboard.writeText(data.url);
+        btn.textContent = 'Link copied!';
+      } catch {
+        prompt('Share link:', data.url);
+        btn.textContent = 'Link ready';
+      }
       setTimeout(() => { btn.textContent = 'Share as link'; btn.disabled = false; }, 3000);
-    } catch (err) {
+    } catch (_err) {
       btn.textContent = 'Share failed';
       setTimeout(() => { btn.textContent = 'Share as link'; btn.disabled = false; }, 2000);
     }
@@ -647,9 +662,14 @@ function wireEvents() {
   document.getElementById('email-btn').addEventListener('click', () => {
     const subject = document.getElementById('subject-text').textContent;
     const body = document.getElementById('intro-body').innerText;
-    const emails = [state.emailA, state.emailB].filter(e => e.trim());
+    const emails = [state.emailA, state.emailB].filter(e => e && e.trim());
     const to = emails.join(',');
-    window.location.assign(`mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
+
+    const mailtoUrl = 'mailto:' + encodeURIComponent(to)
+      + '?subject=' + encodeURIComponent(subject)
+      + '&body=' + encodeURIComponent(body);
+
+    window.open(mailtoUrl, '_self');
   });
 
   document.getElementById('regen-btn').addEventListener('click', () => generate());
@@ -662,10 +682,8 @@ function wireEvents() {
     goToStep(0);
   });
 
-  // Hero start button
   document.getElementById('hero-start').addEventListener('click', () => goToStep(1));
 
-  // Try an example
   document.getElementById('hero-example').addEventListener('click', () => {
     state.personA = 'Sarah Chen, CTO at TalentAI, building AI-powered hiring tools. Raised $2M seed. Based in Montreal.';
     state.personB = 'Mike Park, VP Engineering at Acme Corp, hiring 20 engineers this quarter. Previously at Shopify.';
@@ -678,7 +696,6 @@ function wireEvents() {
     goToStep(4);
   });
 
-  // Arrow key navigation
   document.addEventListener('keydown', (e) => {
     if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
       if (!canNavigateWithKeys()) return;
@@ -691,15 +708,17 @@ function wireEvents() {
       e.preventDefault();
       goToStep(getPrevStep(state.currentStep));
     }
-    // Enter on hero screen
     if (e.key === 'Enter' && state.currentStep === 0) {
       e.preventDefault();
       goToStep(1);
     }
   });
 
-  // Resize handler
-  window.addEventListener('resize', () => recalcSteps());
+  let resizeTimer;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(recalcSteps, 100);
+  });
 }
 
 // --- Init ---
@@ -707,7 +726,6 @@ function init() {
   restoreDOM();
   wireEvents();
 
-  // Detect platform for keyboard hint
   const isMac = navigator.platform.toUpperCase().includes('MAC');
   if (!isMac) {
     document.querySelectorAll('.kbd-hint').forEach(el => {
@@ -715,15 +733,17 @@ function init() {
     });
   }
 
-  // Always start at hero screen on load (data is preserved in localStorage)
   goToStep(0);
 
-  // Fetch stats for footer
-  fetch('/api/stats').then(r => r.json()).then(data => {
-    if (data.total > 0) {
-      document.getElementById('stats-count').textContent = `${data.total} introductions crafted · `;
-    }
-  }).catch(() => {});
+  fetch('/api/stats')
+    .then(r => r.json())
+    .then(data => {
+      const el = document.getElementById('stats-count');
+      if (data.total && data.total > 0) {
+        el.textContent = data.total + ' introductions crafted. ';
+      }
+    })
+    .catch(() => {});
 }
 
 document.addEventListener('DOMContentLoaded', init);
