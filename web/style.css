@@ -5,6 +5,29 @@
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
+.wip-banner {
+  background: #2A2520;
+  color: #FAF8F5;
+  padding: 14px 20px;
+  text-align: center;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  border-bottom: 1px solid #B5706A;
+}
+.wip-banner strong {
+  color: #E8A8A2;
+  font-weight: 600;
+  margin-right: 4px;
+}
+.wip-banner a {
+  color: #E8A8A2;
+  text-decoration: underline;
+}
+.wip-banner a:hover {
+  color: #FAF8F5;
+}
+
 :root {
   --bg: #FAF8F5;
   --surface: #F0EDE8;

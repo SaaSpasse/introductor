@@ -139,6 +139,16 @@ export default async function handler(request) {
     return new Response('Method not allowed', { status: 405, headers: corsHeaders });
   }
 
+  // Introductor web app is a work in progress and not available publicly.
+  // The API is disabled to prevent usage against the hosted key.
+  return new Response(
+    JSON.stringify({
+      error: 'Introductor is a work in progress and not available publicly yet. The hosted version is offline. You can still use the Claude Code skill at https://github.com/SaaSpasse/introductor',
+      wip: true
+    }),
+    { status: 503, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+  );
+
   try {
     // Rate limit check
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
